@@ -1,0 +1,26 @@
+[project]
+name = "monarch-feeder"
+version = "0.1.0"
+description = "This project feeds financial data from various sources to Monarch Money."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas==2.2.3",
+    "monarchmoney==0.1.15",
+    "python-dotenv==1.1.0",
+    "pyotp==2.9.0",
+    "oathtool==2.3.2",
+    "pexpect==4.9.0",
+    "pyzbar==0.1.9",
+    "Pillow==11.2.1",
+    "protobuf==3.20.0",
+    "beautifulsoup4==4.13.4",
+    "playwright==1.52.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["monarch_feeder"]
