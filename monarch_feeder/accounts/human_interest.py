@@ -23,9 +23,24 @@ class HumanInterestSession:
 
     def __enter__(self):
         self.playwright = sync_playwright().start()
-        self.browser = self.playwright.chromium.launch(headless=True)
-        self.context = self.browser.new_context()
+        # Enable JavaScript and other browser features needed for SPAs
+        self.browser = self.playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-web-security",
+                "--enable-javascript",
+            ],
+        )
+        # Create context with JavaScript enabled
+        self.context = self.browser.new_context(
+            java_script_enabled=True, ignore_https_errors=True
+        )
         self.page = self.context.new_page()
+        # Set longer timeout for SPA interactions
+        self.page.set_default_timeout(30000)  # 30 seconds
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -62,6 +77,10 @@ def login() -> HumanInterestSession:
     session.page.wait_for_load_state("networkidle")
     print("Login page loaded")
 
+    # Screenshot 1: Initial login page
+    session.page.screenshot(path="debug_01_login_page.png")
+    print("Screenshot saved: debug_01_login_page.png")
+
     # Step 1: Enter email and click next
     email_selector = 'input[data-testid="input-login-email"]'
     session.page.wait_for_selector(email_selector, state="visible")
@@ -69,20 +88,199 @@ def login() -> HumanInterestSession:
     session.page.fill(email_selector, username)
     print("Email filled")
 
+    # Screenshot 2: After filling email
+    session.page.screenshot(path="debug_02_email_filled.png")
+    print("Screenshot saved: debug_02_email_filled.png")
+
     submit_selector = 'button[data-testid="btn-login-email-submit"]'
     session.page.wait_for_selector(submit_selector, state="visible")
     print("Email submit selector found")
-    session.page.click(submit_selector)
-    print("Email submit clicked")
+
+    # Try multiple ways to submit the form since SPAs can be finicky
+    try:
+        # Method 1: Try pressing Enter in the email field (most reliable for SPAs)
+        session.page.focus(email_selector)
+        session.page.keyboard.press("Enter")
+        print("Pressed Enter on email field")
+        session.page.wait_for_timeout(2000)  # Give time for submission
+
+        # Check if password field appeared
+        password_selector = 'input[name="password"][type="password"]'
+        try:
+            session.page.wait_for_selector(
+                password_selector, state="visible", timeout=3000
+            )
+            print("Password field appeared after pressing Enter")
+            # Screenshot 3a: Success with Enter method
+            session.page.screenshot(path="debug_03a_enter_success.png")
+            print("Screenshot saved: debug_03a_enter_success.png")
+        except:
+            print("Enter method didn't work, trying click with wait for response...")
+            # Screenshot 3b: After Enter attempt failed
+            session.page.screenshot(path="debug_03b_enter_failed.png")
+            print("Screenshot saved: debug_03b_enter_failed.png")
+
+            # Method 2: Click and wait for network response
+            with session.page.expect_response(
+                lambda response: True, timeout=10000
+            ) as response_info:
+                session.page.click(submit_selector)
+                print("Clicked submit button and waiting for response...")
+
+            session.page.wait_for_timeout(2000)
+
+            # Check again for password field
+            try:
+                session.page.wait_for_selector(
+                    password_selector, state="visible", timeout=3000
+                )
+                print("Password field appeared after click with response wait")
+                # Screenshot 3c: Success with click method
+                session.page.screenshot(path="debug_03c_click_success.png")
+                print("Screenshot saved: debug_03c_click_success.png")
+            except:
+                print("Click with response wait didn't work, trying form submission...")
+                # Screenshot 3d: After click attempt failed
+                session.page.screenshot(path="debug_03d_click_failed.png")
+                print("Screenshot saved: debug_03d_click_failed.png")
+
+                # Method 3: Try to submit the form directly
+                form_selector = "form"
+                try:
+                    session.page.eval_on_selector(
+                        form_selector, "form => form.submit()"
+                    )
+                    print("Submitted form directly")
+                    session.page.wait_for_timeout(2000)
+                    # Screenshot 3e: After form submit
+                    session.page.screenshot(path="debug_03e_form_submit.png")
+                    print("Screenshot saved: debug_03e_form_submit.png")
+                except:
+                    print("Direct form submission failed")
+
+                # Method 4: Try JavaScript click
+                session.page.eval_on_selector(
+                    submit_selector, "element => element.click()"
+                )
+                print("Tried JavaScript click")
+                session.page.wait_for_timeout(2000)
+                # Screenshot 3f: After JavaScript click
+                session.page.screenshot(path="debug_03f_js_click.png")
+                print("Screenshot saved: debug_03f_js_click.png")
+
+    except Exception as e:
+        print(f"Error during form submission attempts: {e}")
+
+    # Give JavaScript a moment to process the form submission
+    session.page.wait_for_timeout(1000)  # 1 second delay
+
+    print("Waiting for password field to appear...")
+    # Wait for the password field to appear instead of just waiting for network idle
+    selector = 'input[name="password"][type="password"]'
+
+    password_found = False
+    try:
+        session.page.wait_for_selector(selector, state="visible", timeout=3000)
+        password_selector = selector
+        password_found = True
+        print(f"Password field found with selector: {selector}")
+        # Screenshot 4: Password field found
+        session.page.screenshot(path="debug_04_password_field_found.png")
+        print("Screenshot saved: debug_04_password_field_found.png")
+    except:
+        print("Password field still not found after all submission attempts")
+
+        # Take a screenshot to debug
+        session.page.screenshot(path="debug_after_email.png")
+        print("Screenshot saved as debug_after_email.png")
+
+        # Check for validation errors or messages
+        error_selectors = [
+            '[data-testid*="error"]',
+            ".error",
+            ".alert",
+            '[role="alert"]',
+            ".message",
+            ".notification",
+        ]
+
+        for error_sel in error_selectors:
+            error_elements = session.page.query_selector_all(error_sel)
+            if error_elements:
+                for elem in error_elements:
+                    error_text = elem.inner_text().strip()
+                    if error_text:
+                        print(f"Found error/message: {error_text}")
+
+        # Check if the email field still has focus/is still visible (indicating no submission happened)
+        email_still_present = session.page.is_visible(email_selector)
+        print(f"Email field still visible: {email_still_present}")
+
+        # Check current page HTML for any clues
+        page_content = session.page.content()
+        if "javascript" in page_content.lower():
+            print("WARNING: Page content mentions JavaScript - this might be disabled")
+        if "error" in page_content.lower():
+            print("WARNING: Page content contains 'error'")
+
+        # Debug: Check what input elements are available
+        all_inputs = session.page.query_selector_all("input")
+        print(f"Found {len(all_inputs)} input elements:")
+        for i, input_elem in enumerate(all_inputs):
+            test_id = input_elem.get_attribute("data-testid")
+            name = input_elem.get_attribute("name")
+            input_type = input_elem.get_attribute("type")
+            placeholder = input_elem.get_attribute("placeholder")
+            value = input_elem.get_attribute("value")
+            print(
+                f"  Input {i}: data-testid='{test_id}', name='{name}', type='{input_type}', placeholder='{placeholder}', value='{value[:20] if value else None}'"
+            )
+
+        # Debug: Check current URL
+        current_url = session.page.url
+        print(f"Current URL: {current_url}")
+
+        raise Exception("Could not find password field after email submission")
+
+    if not password_found:
+        print(f"No password field found with any selector")
+
+        # Take a screenshot to debug
+        session.page.screenshot(path="debug_after_email.png")
+        print("Screenshot saved as debug_after_email.png")
+
+        # Debug: Check what input elements are available
+        all_inputs = session.page.query_selector_all("input")
+        print(f"Found {len(all_inputs)} input elements:")
+        for i, input_elem in enumerate(all_inputs):
+            test_id = input_elem.get_attribute("data-testid")
+            name = input_elem.get_attribute("name")
+            input_type = input_elem.get_attribute("type")
+            placeholder = input_elem.get_attribute("placeholder")
+            print(
+                f"  Input {i}: data-testid='{test_id}', name='{name}', type='{input_type}', placeholder='{placeholder}'"
+            )
+
+        # Debug: Check current URL
+        current_url = session.page.url
+        print(f"Current URL: {current_url}")
+
+        # Debug: Check page content for error messages
+        page_text = session.page.inner_text("body")
+        if "javascript" in page_text.lower():
+            print("Page mentions JavaScript - this might be the issue")
+
+        raise Exception("Could not find password field after email submission")
 
     # Step 2: Enter password and submit
-    password_selector = 'input[data-testid="input-login-password"]'
-    session.page.wait_for_selector(password_selector, state="visible")
-    print("Password selector found")
     session.page.fill(password_selector, password)
     print("Password filled")
 
-    signin_selector = 'button[data-testid="btn-login-submit"]'
+    # Screenshot 5: Password filled
+    session.page.screenshot(path="debug_05_password_filled.png")
+    print("Screenshot saved: debug_05_password_filled.png")
+
+    signin_selector = 'button[type="submit"]'
     session.page.wait_for_selector(signin_selector, state="visible")
     print("Signin selector found")
     session.page.click(signin_selector)
@@ -90,6 +288,10 @@ def login() -> HumanInterestSession:
 
     # Step 2.5: Wait for navigation after login
     session.page.wait_for_load_state("networkidle")
+
+    # Screenshot 6: After login
+    session.page.screenshot(path="debug_06_after_login.png")
+    print("Screenshot saved: debug_06_after_login.png")
 
     # Step 3: Extract account ID from URL or page content
     session.page.wait_for_selector('a[href*="account/"]')
