@@ -181,3 +181,7 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+# Results
+human_interest_outputs/
+human_interest_screenshots/
