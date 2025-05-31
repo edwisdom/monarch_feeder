@@ -202,4 +202,4 @@ def shell(ctx: Context) -> None:
 def build_and_run_all(ctx: Context) -> None:
     """Build and run all automations (convenience alias)."""
     build(ctx)
-    run(ctx, "human_interest")
+    run(ctx, AVAILABLE_AUTOMATIONS.join(","))
