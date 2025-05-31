@@ -25,14 +25,8 @@ from anthropic.types.beta import (
 )
 from streamlit.delta_generator import DeltaGenerator
 
-from monarch_feeder.claude_computer_use.computer_use_demo.loop import (
-    APIProvider,
-    sampling_loop,
-)
-from monarch_feeder.claude_computer_use.computer_use_demo.tools import (
-    ToolResult,
-    ToolVersion,
-)
+from monarch_feeder.computer_use_demo.loop import APIProvider, sampling_loop
+from monarch_feeder.computer_use_demo.tools import ToolResult, ToolVersion
 
 PROVIDER_TO_DEFAULT_MODEL_NAME: dict[APIProvider, str] = {
     APIProvider.ANTHROPIC: "claude-sonnet-4-20250514",

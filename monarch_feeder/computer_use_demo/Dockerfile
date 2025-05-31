@@ -13,10 +13,10 @@ WORKDIR /home/computeruse
 
 # Copy the entire computer_use_demo directory with all local changes
 # This ensures local modifications override any installed package
-COPY --chown=computeruse:computeruse monarch_feeder/claude_computer_use/computer_use_demo/ ./computer_use_demo/
+COPY --chown=computeruse:computeruse monarch_feeder/computer_use_demo/ ./computer_use_demo/
 
 # Copy the generic entrypoint script
-COPY --chown=computeruse:computeruse monarch_feeder/claude_computer_use/computer_use_demo/entrypoint_generic.sh ./entrypoint_generic.sh
+COPY --chown=computeruse:computeruse monarch_feeder/computer_use_demo/entrypoint_generic.sh ./entrypoint_generic.sh
 RUN chmod +x ./entrypoint_generic.sh
 
 # Ensure the local computer_use_demo is in Python path and takes precedence

@@ -8,14 +8,12 @@ from pathlib import Path
 
 from invoke import Context, task
 
-from monarch_feeder.claude_computer_use.computer_use_demo.automation_orchestrator import (
-    AutomationType,
-)
+from monarch_feeder.computer_use_demo.automation_orchestrator import AutomationType
 
 # Shared container configuration
 CONTAINER_IMAGE = "computer-use-automation"
 CONTAINER_NAME_PREFIX = "automation"
-DOCKERFILE = "monarch_feeder/claude_computer_use/computer_use_demo/Dockerfile"
+DOCKERFILE = "monarch_feeder/computer_use_demo/Dockerfile"
 
 # Default output directories
 DEFAULT_OUTPUT_DIR = "automation_outputs"
