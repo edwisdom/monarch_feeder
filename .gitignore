@@ -185,3 +185,5 @@ cython_debug/
 # Results
 human_interest_outputs/
 human_interest_screenshots/
+automation_outputs/
+automation_screenshots/

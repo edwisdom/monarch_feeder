@@ -1,4 +1,4 @@
-# Dockerfile for running Human Interest automation script
+# Dockerfile for computer use automation
 # Uses the existing computer use demo container as base
 
 FROM ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
@@ -11,13 +11,13 @@ RUN pip install python-dotenv==1.1.0 instructor[anthropic]==1.8.3
 USER computeruse
 WORKDIR /home/computeruse
 
-# Copy our custom entrypoint
-COPY --chown=computeruse:computeruse monarch_feeder/claude_computer_use/human_interest/entrypoint_human_interest.sh ./entrypoint_human_interest.sh
-RUN chmod +x ./entrypoint_human_interest.sh
-
 # Copy the entire computer_use_demo directory with all local changes
 # This ensures local modifications override any installed package
 COPY --chown=computeruse:computeruse monarch_feeder/claude_computer_use/computer_use_demo/ ./computer_use_demo/
+
+# Copy the generic entrypoint script
+COPY --chown=computeruse:computeruse monarch_feeder/claude_computer_use/computer_use_demo/entrypoint_generic.sh ./entrypoint_generic.sh
+RUN chmod +x ./entrypoint_generic.sh
 
 # Ensure the local computer_use_demo is in Python path and takes precedence
 ENV PYTHONPATH="/home/computeruse:${PYTHONPATH}"
@@ -27,8 +27,8 @@ ENV WIDTH=1024
 ENV HEIGHT=768
 ENV DISPLAY_NUM=1
 
-# Create output directories
-RUN mkdir -p ./human_interest_outputs ./human_interest_screenshots
+# Set default automation list (can be overridden)
+ENV AUTOMATION_LIST=human_interest
 
-# Use our custom entrypoint
-ENTRYPOINT ["./entrypoint_human_interest.sh"] 
+# Use the entrypoint script which properly starts services and runs the orchestrator
+ENTRYPOINT ["./entrypoint_generic.sh"] 

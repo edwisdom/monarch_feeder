@@ -119,8 +119,8 @@ class ProgrammaticRunner:
         self.screenshots_dir = Path(screenshots_dir)
 
         # Create output directories
-        self.output_dir.mkdir(exist_ok=True)
-        self.screenshots_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.screenshots_dir.mkdir(parents=True, exist_ok=True)
 
         os.environ["WIDTH"] = "1024"  # XGA width (16:9 aspect ratio)
         os.environ["HEIGHT"] = "768"  # XGA height (16:9 aspect ratio)

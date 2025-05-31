@@ -21,6 +21,7 @@ dependencies = [
     "streamlit==1.45.1",
     "boto3==1.38.26",
     "google-auth==2.40.2",
+    "invoke==2.2.0",
 ]
 
 [build-system]
