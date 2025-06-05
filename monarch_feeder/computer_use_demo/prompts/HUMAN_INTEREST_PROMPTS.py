@@ -26,6 +26,7 @@ transactions = Template(
         - user_account (string): The 401k user account. Always fill this in as "Human Interest - Espresso 401k".
         - counterparty_account (string): The other account in this transaction.
             Make sure this is separate for employee vs. employer vs. rollover contributions.
+            Don't call this account "in-progress" or "pending" -- just call it "Employee Contribution", "Employer Contribution", "Rollover", etc.
         - amount (float): The amount of the transaction.
     5. Return only the JSON list in your response, with no other text. 
     """
