@@ -8,7 +8,7 @@ import datetime
 from pydantic import BaseModel, field_validator
 
 
-class TransactionModel(BaseModel):
+class Transaction(BaseModel):
     """Pydantic model for transaction validation and serialization."""
 
     date: str
