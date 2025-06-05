@@ -4,7 +4,7 @@ This module is self-contained and doesn't depend on the larger monarch_feeder pa
 """
 
 import datetime
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 from pydantic import BaseModel, field_validator
 
@@ -105,3 +105,46 @@ class Portfolio(BaseModel):
         for holding in self.holdings:
             result.update(holding.to_dict())
         return result
+
+
+def diff_transaction_logs(
+    new_log: list[Transaction], old_log: list[Transaction]
+) -> list[Transaction]:
+    """Reconcile two lists of transactions.
+
+    Returns transactions that are in new_log but not in old_log.
+    Groups by (date, amount) and compares counts.
+
+    Note that this doesn't handle the edge case where the new logs have
+    more transactions of a certain amount on a given date than the old log.
+    In that case, we'd need to use some kind of matching algorithm (e.g. an LLM)
+    to determine which transactions are new and which are old. This seems
+    unnecessary in 99.99% of cases for this application, so it hasn't been implemented.
+    """
+    # Group transactions by (date, amount)
+    new_groups = defaultdict(list)
+    old_groups = defaultdict(list)
+
+    for transaction in new_log:
+        key = (transaction.date, transaction.amount)
+        new_groups[key].append(transaction)
+
+    for transaction in old_log:
+        key = (transaction.date, transaction.amount)
+        old_groups[key].append(transaction)
+
+    new_transactions = []
+
+    # For each (date, amount) group in new_log
+    for key, new_group in new_groups.items():
+        old_group = old_groups.get(key, [])
+
+        new_count = len(new_group)
+        old_count = len(old_group)
+
+        if new_count > old_count:
+            # Add the excess transactions as new
+            excess_count = new_count - old_count
+            new_transactions.extend(new_group[:excess_count])
+
+    return new_transactions
