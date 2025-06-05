@@ -12,6 +12,8 @@ from typing import Callable, List
 
 from dotenv import load_dotenv
 
+from monarch_feeder.computer_use_demo.models import Portfolio, Transaction
+
 from .programmatic_runner import ProgrammaticRunner, SubTask, TaskConfig
 
 # Load environment variables
@@ -50,12 +52,14 @@ def create_human_interest_task() -> TaskConfig:
             prompt=portfolio.render(portfolio_url=portfolio_url),
             save_output=True,
             description="Extract portfolio information",
+            response_model=Portfolio,
         ),
         SubTask(
             name="transactions",
             prompt=transactions.render(transactions_url=transactions_url),
             save_output=True,
             description="Extract transaction history",
+            response_model=list[Transaction],
         ),
     ]
 

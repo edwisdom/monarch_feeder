@@ -12,9 +12,8 @@ class Transaction(BaseModel):
     """Pydantic model for transaction validation and serialization."""
 
     date: str
-    from_account: str
-    to_account: str
-    description: str
+    user_account: str
+    counterparty_account: str
     amount: float
 
     @field_validator("date")
@@ -25,22 +24,6 @@ class Transaction(BaseModel):
             datetime.datetime.strptime(v, "%Y-%m-%d")
         except ValueError:
             raise ValueError("Date must be in YYYY-MM-DD format")
-        return v
-
-    @field_validator("from_account", "to_account", "description")
-    @classmethod
-    def validate_non_empty_string(cls, v):
-        """Ensure string fields are not empty and normalize whitespace."""
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty")
-        return v.strip()
-
-    @field_validator("amount")
-    @classmethod
-    def validate_amount(cls, v):
-        """Ensure amount is positive."""
-        if v <= 0:
-            raise ValueError("Amount must be positive")
         return v
 
 

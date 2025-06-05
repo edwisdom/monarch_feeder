@@ -23,12 +23,11 @@ transactions = Template(
     3. Ignore any transactions labeled as "Trade." Do not click on any other elements on this page.
     4. Parse each transaction and return a JSON list of dictionaries with the following fields:
         - date (string): Use YYYY-MM-DD format.
-        - from_account (string): The account that the transaction was made from. 
-            Make sure this is separate for employee vs. employer contributions.
-        - to_account (string): Always fill this in as "Human Interest - Espresso 401k".
-        - description (string): A description of the transaction.
+        - user_account (string): The 401k user account. Always fill this in as "Human Interest - Espresso 401k".
+        - counterparty_account (string): The other account in this transaction.
+            Make sure this is separate for employee vs. employer vs. rollover contributions.
         - amount (float): The amount of the transaction.
-    5. Return only the JSON list in your response, with no other text. Use the return_json_output tool to return the JSON data. 
+    5. Return only the JSON list in your response, with no other text. 
     """
 )
 
@@ -40,6 +39,6 @@ portfolio = Template(
         - stock_ticker (string): The stock ticker symbol
         - shares (float): The number of shares held. Make sure that you report the number of shares, not the dollar value.
     4. Ignore the US vs. international subtotals and do not include them in your response.
-    5. Return only the JSON list in your response, with no other text. Use the return_json_output tool to return the JSON data. 
+    5. Return only the JSON list in your response, with no other text.
     """
 )

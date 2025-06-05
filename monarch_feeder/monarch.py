@@ -90,27 +90,15 @@ async def get_transactions_for_account(
             Transaction: Standardized transaction model
         """
         # Extract basic transaction data
-        date = transaction["date"]
-        amount = transaction["amount"]
-        merchant_name = transaction.get("merchant", {}).get("name", "Unknown")
-        monarch_account_name = transaction.get("account", {}).get(
+        counterparty_account = transaction.get("merchant", {}).get("name", "Unknown")
+        user_account = transaction.get("account", {}).get(
             "displayName", "Unknown Account"
         )
-        from_account, to_account = (
-            (
-                merchant_name,
-                monarch_account_name,
-            )
-            if transaction["amount"] > 0
-            else (monarch_account_name, merchant_name)
-        )
-
         return Transaction(
-            date=date,
-            from_account=from_account,
-            to_account=to_account,
-            description=f"{merchant_name} - {monarch_account_name}",
-            amount=abs(amount),
+            date=transaction["date"],
+            user_account=user_account,
+            counterparty_account=counterparty_account,
+            amount=transaction["amount"],
         )
 
     # Get the transactions for the last num_days days
@@ -184,12 +172,46 @@ async def get_portfolio_for_account(mm: MonarchMoney, account_id: str) -> Portfo
     return Portfolio(holdings=holdings)
 
 
+async def add_transaction_to_account(
+    mm: MonarchMoney, transaction: Transaction, account_id: str, category_id: str
+) -> bool:
+    """
+    Add a transaction to an account.
+
+    Args:
+        mm: MonarchMoney instance
+        account_id: The account ID to add the transaction to
+        transaction: Transaction to add
+        category_id: The category ID for the transaction (required by Monarch)
+
+    Returns:
+        API response from creating the transaction
+    """
+    # Create the transaction using Monarch API
+    response = await mm.create_transaction(
+        date=transaction.date,
+        account_id=account_id,
+        amount=transaction.amount,
+        merchant_name=transaction.counterparty_account,
+        category_id=category_id,
+    )
+
+    return response
+
+
 async def main():
     mm = await login()
-    portfolio = await get_portfolio_for_account(
-        mm, os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID")
+    await add_transaction_to_account(
+        mm=mm,
+        transaction=Transaction(
+            date=datetime.today().strftime("%Y-%m-%d"),
+            user_account="Human Interest - Espresso 401k",
+            counterparty_account="Test Contribution 2",
+            amount=2,
+        ),
+        account_id=os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID"),
+        category_id=os.getenv("MONARCH_HUMAN_INTEREST_CATEGORY_ID"),
     )
-    print(portfolio)
 
 
 if __name__ == "__main__":
