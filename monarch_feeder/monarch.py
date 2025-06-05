@@ -199,19 +199,176 @@ async def add_transaction_to_account(
     return response
 
 
+async def update_account_holdings(
+    mm: MonarchMoney, account_id: str, holdings: Portfolio
+) -> bool:
+    """
+    Update the holdings for a specific account using Monarch Money's manual holdings API.
+
+    Args:
+        mm: MonarchMoney instance
+        account_id: The account ID to update holdings for
+        holdings: Target portfolio with desired holdings
+
+    Returns:
+        bool: True if update was successful, False otherwise
+    """
+    try:
+        # Get current holdings to understand what needs to be changed
+        current_response = await mm.get_account_holdings(int(account_id))
+        current_holdings_data = []
+
+        # Extract current holdings from the response
+        if (
+            "portfolio" in current_response
+            and "aggregateHoldings" in current_response["portfolio"]
+        ):
+            edges = current_response["portfolio"]["aggregateHoldings"].get("edges", [])
+            current_holdings_data = [edge["node"] for edge in edges if "node" in edge]
+
+        # Create mappings for current holdings
+        current_holdings_by_ticker = {}
+        for holding_data in current_holdings_data:
+            ticker = holding_data.get("security", {}).get("ticker")
+            if ticker:
+                # Get the actual holding ID from the holdings array, not the aggregate ID
+                holdings_list = holding_data.get("holdings", [])
+                holding_id = None
+                if holdings_list:
+                    holding_id = holdings_list[0].get(
+                        "id"
+                    )  # Get the first (should be only) holding ID
+
+                quantity = holding_data.get("quantity", 0.0)
+
+                current_holdings_by_ticker[ticker] = {
+                    "id": holding_id,
+                    "quantity": quantity,
+                    "ticker": ticker,
+                }
+
+        # Track operations
+        operations_succeeded = 0
+        total_operations = 0
+
+        # Process target holdings
+        target_tickers = set()
+        for target_holding in holdings.holdings:
+            ticker = target_holding.stock_ticker
+            target_quantity = target_holding.shares
+            target_tickers.add(ticker)
+
+            total_operations += 1
+
+            if ticker in current_holdings_by_ticker:
+                # For existing holdings, delete and recreate if quantity changed
+                current_quantity = current_holdings_by_ticker[ticker]["quantity"]
+                if abs(current_quantity - target_quantity) > 0.001:
+                    try:
+                        holding_id = current_holdings_by_ticker[ticker]["id"]
+
+                        # Delete the existing holding
+                        delete_success = await mm.delete_manual_holding(holding_id)
+
+                        if delete_success:
+                            # Create new holding with updated quantity
+                            response = await mm.create_manual_holding_by_ticker(
+                                account_id=account_id,
+                                ticker=ticker,
+                                quantity=target_quantity,
+                            )
+
+                            # Check for errors in the response
+                            if response.get("errors"):
+                                print(
+                                    f"Failed to recreate holding for {ticker}: {response['errors']}"
+                                )
+                            elif response.get("createManualHolding", {}).get("errors"):
+                                print(
+                                    f"Failed to recreate holding for {ticker}: {response['createManualHolding']['errors']}"
+                                )
+                            elif response.get("createManualHolding", {}).get("holding"):
+                                print(
+                                    f"Updated {ticker}: {current_quantity} -> {target_quantity} shares (via delete+create)"
+                                )
+                                operations_succeeded += 1
+                            else:
+                                print(
+                                    f"Unexpected response recreating holding for {ticker}: {response}"
+                                )
+                        else:
+                            print(f"Failed to delete existing holding for {ticker}")
+                    except Exception as e:
+                        print(f"Exception updating {ticker}: {e}")
+                else:
+                    # No change needed
+                    print(f"No change needed for {ticker}: {current_quantity} shares")
+                    operations_succeeded += 1
+            else:
+                # Create new holding
+                try:
+                    response = await mm.create_manual_holding_by_ticker(
+                        account_id=account_id,
+                        ticker=ticker,
+                        quantity=target_quantity,
+                    )
+
+                    # Check for errors in the response
+                    if response.get("errors"):
+                        print(
+                            f"Failed to create holding for {ticker}: {response['errors']}"
+                        )
+                    elif response.get("createManualHolding", {}).get("errors"):
+                        print(
+                            f"Failed to create holding for {ticker}: {response['createManualHolding']['errors']}"
+                        )
+                    elif response.get("createManualHolding", {}).get("holding"):
+                        print(f"Created holding for {ticker}: {target_quantity} shares")
+                        operations_succeeded += 1
+                    else:
+                        print(
+                            f"Unexpected response creating holding for {ticker}: {response}"
+                        )
+                except Exception as e:
+                    print(f"Exception creating holding for {ticker}: {e}")
+
+        # Remove holdings that are not in target portfolio
+        for ticker, current_holding in current_holdings_by_ticker.items():
+            if ticker not in target_tickers and current_holding["quantity"] > 0:
+                total_operations += 1
+                try:
+                    holding_id = current_holding["id"]
+                    success = await mm.delete_manual_holding(holding_id)
+
+                    if success:
+                        print(f"Deleted holding for {ticker}")
+                        operations_succeeded += 1
+                    else:
+                        print(f"Failed to delete holding for {ticker}")
+                except Exception as e:
+                    print(f"Exception deleting holding for {ticker}: {e}")
+
+        success = operations_succeeded == total_operations
+        print(
+            f"Holdings update completed: {operations_succeeded}/{total_operations} operations succeeded"
+        )
+        return success
+
+    except Exception as e:
+        print(f"Error updating account holdings: {e}")
+        return False
+
+
 async def main():
     mm = await login()
-    await add_transaction_to_account(
-        mm=mm,
-        transaction=Transaction(
-            date=datetime.today().strftime("%Y-%m-%d"),
-            user_account="Human Interest - Espresso 401k",
-            counterparty_account="Test Contribution 2",
-            amount=2,
-        ),
-        account_id=os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID"),
-        category_id=os.getenv("MONARCH_HUMAN_INTEREST_CATEGORY_ID"),
+    portfolio = Portfolio(
+        holdings=[
+            Holding(stock_ticker="AAPL", shares=0.2),
+            Holding(stock_ticker="GOOGL", shares=0.15),
+        ]
     )
+    account_id = os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID")
+    success = await update_account_holdings(mm, account_id, portfolio)
 
 
 if __name__ == "__main__":

@@ -482,6 +482,15 @@ anthropic = [
 ]
 
 [[package]]
+name = "invoke"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/42/127e6d792884ab860defc3f4d80a8f9812e48ace584ffc5a346de58cdc6c/invoke-2.2.0.tar.gz", hash = "sha256:ee6cbb101af1a859c7fe84f2a264c059020b0cb7fe3535f9424300ab568f6bd5", size = 299835 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/66/7f8c48009c72d73bc6bbe6eb87ac838d6a526146f7dab14af671121eb379/invoke-2.2.0-py3-none-any.whl", hash = "sha256:6ea924cc53d4f78e3d98bc436b08069a03077e6f85ad1ddaa8a116d7dad15820", size = 160274 },
+]
+
+[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -633,6 +642,7 @@ dependencies = [
     { name = "google-auth" },
     { name = "httpx" },
     { name = "instructor", extra = ["anthropic"] },
+    { name = "invoke" },
     { name = "monarchmoney" },
     { name = "oathtool" },
     { name = "pandas" },
@@ -653,7 +663,8 @@ requires-dist = [
     { name = "google-auth", specifier = "==2.40.2" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "instructor", extras = ["anthropic"], specifier = "==1.8.3" },
-    { name = "monarchmoney", specifier = "==0.1.15" },
+    { name = "invoke", specifier = "==2.2.0" },
+    { name = "monarchmoney", git = "https://github.com/edwisdom/monarchmoney.git?rev=feat%2Fadd_and_remove_holdings" },
     { name = "oathtool", specifier = "==2.3.2" },
     { name = "pandas", specifier = "==2.2.3" },
     { name = "pexpect", specifier = "==4.9.0" },
@@ -669,15 +680,11 @@ requires-dist = [
 [[package]]
 name = "monarchmoney"
 version = "0.1.15"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/edwisdom/monarchmoney.git?rev=feat%2Fadd_and_remove_holdings#9d48027dc358bcc0d685b0c7b742afbfa34afaa2" }
 dependencies = [
     { name = "aiohttp" },
     { name = "gql" },
     { name = "oathtool" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/fd/1ddc7ca4ff461c2420dbc08bfff7f6672815c7ca49e871338b1839d7b898/monarchmoney-0.1.15.tar.gz", hash = "sha256:cd11ecdf1b9ba3be9f5a426cb76735fdfc56f750a4e838dc4ced1d9c5c99cc01", size = 23689 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/28/e8fbd8ccd705c4d33423696af90bf6e6256d4669d9a4c89a06aec4cce2f8/monarchmoney-0.1.15-py2.py3-none-any.whl", hash = "sha256:fab999b88d465f7f14cdc132d1dc3b7f7e2427ef738b9f4da5d5d4fc16effa5f", size = 19974 },
 ]
 
 [[package]]

@@ -6,7 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pandas==2.2.3",
-    "monarchmoney==0.1.15",
+    # "monarchmoney==0.1.15", # TODO: Remove once they accept my PR lol
+    "monarchmoney @ git+https://github.com/edwisdom/monarchmoney.git@feat/add_and_remove_holdings",
     "python-dotenv==1.1.0",
     "pyotp==2.9.0",
     "oathtool==2.3.2",
@@ -27,6 +28,9 @@ dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["monarch_feeder"]
