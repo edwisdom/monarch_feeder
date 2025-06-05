@@ -4,8 +4,12 @@ This module is self-contained and doesn't depend on the larger monarch_feeder pa
 """
 
 import datetime
+from collections import namedtuple
 
 from pydantic import BaseModel, field_validator
+
+# Define namedtuple for holding data
+HoldingData = namedtuple("HoldingData", ["shares", "holding_id"])
 
 
 class Transaction(BaseModel):
@@ -32,6 +36,7 @@ class Holding(BaseModel):
 
     stock_ticker: str
     shares: float
+    holding_id: str | None = None
 
     @field_validator("stock_ticker")
     @classmethod
@@ -49,11 +54,35 @@ class Holding(BaseModel):
             raise ValueError("Shares must be positive")
         return v
 
+    def to_dict(self) -> dict[str, HoldingData]:
+        """Convert this Holding to a dict keyed on stock_ticker.
+
+        Returns:
+            Dict with stock_ticker as key and HoldingData namedtuple as value
+        """
+        return {
+            self.stock_ticker: HoldingData(
+                shares=self.shares, holding_id=self.holding_id
+            )
+        }
+
 
 class Portfolio(BaseModel):
     """Portfolio containing a list of holdings."""
 
     holdings: list[Holding]
+
+    @field_validator("holdings")
+    @classmethod
+    def validate_no_duplicate_tickers(cls, v):
+        """Ensure no stock ticker is repeated in the portfolio."""
+        tickers = [holding.stock_ticker.upper() for holding in v]
+        if len(tickers) != len(set(tickers)):
+            duplicates = [
+                ticker for ticker in set(tickers) if tickers.count(ticker) > 1
+            ]
+            raise ValueError(f"Duplicate stock tickers found: {duplicates}")
+        return v
 
     def get_total_positions(self) -> int:
         """Return the total number of different positions."""
@@ -65,3 +94,14 @@ class Portfolio(BaseModel):
             if holding.stock_ticker == ticker.upper():
                 return holding
         return None
+
+    def to_dict(self) -> dict[str, HoldingData]:
+        """Convert all holdings to a single dict with stock tickers as keys.
+
+        Returns:
+            Dict with stock_ticker as keys and HoldingData namedtuples as values
+        """
+        result = {}
+        for holding in self.holdings:
+            result.update(holding.to_dict())
+        return result
