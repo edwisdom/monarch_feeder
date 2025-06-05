@@ -4,7 +4,9 @@ This module is self-contained and doesn't depend on the larger monarch_feeder pa
 """
 
 import datetime
+import json
 from collections import defaultdict, namedtuple
+from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
@@ -29,6 +31,30 @@ class Transaction(BaseModel):
         except ValueError:
             raise ValueError("Date must be in YYYY-MM-DD format")
         return v
+
+
+class TransactionLog(BaseModel):
+    """Log of transactions."""
+
+    transactions: list[Transaction]
+
+    @field_validator("transactions")
+    @classmethod
+    def validate_transactions(cls, v):
+        """Ensure there are no duplicate transactions."""
+        if len(v) != len(set(v)):
+            raise ValueError("Duplicate transactions found")
+        return v
+
+    @classmethod
+    def from_json_file(cls, json_file: Path) -> "TransactionLog":
+        """Create a TransactionLog from a JSON file containing a list of transactions."""
+        with open(json_file, "r") as f:
+            transactions_data = json.load(f)
+        transactions = [
+            Transaction(**transaction_dict) for transaction_dict in transactions_data
+        ]
+        return cls(transactions=transactions)
 
 
 class Holding(BaseModel):
@@ -106,8 +132,19 @@ class Portfolio(BaseModel):
             result.update(holding.to_dict())
         return result
 
+    @classmethod
+    def from_json_file(cls, json_file: Path) -> "Portfolio":
+        """Create a Portfolio from a JSON file containing a list of holdings."""
+        with open(json_file, "r") as f:
+            holdings_data = json.load(f)
 
-def diff_transaction_logs(
+        # Create Holding objects from the list
+        holdings = [Holding(**holding_dict) for holding_dict in holdings_data]
+
+        return cls(holdings=holdings)
+
+
+def get_transaction_log_diff(
     new_log: list[Transaction], old_log: list[Transaction]
 ) -> list[Transaction]:
     """Reconcile two lists of transactions.

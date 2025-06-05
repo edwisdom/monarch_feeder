@@ -8,7 +8,12 @@ import pyotp
 from dotenv import load_dotenv
 from monarchmoney import MonarchMoney
 
-from monarch_feeder.computer_use_demo.models import Holding, Portfolio, Transaction
+from monarch_feeder.computer_use_demo.models import (
+    Holding,
+    Portfolio,
+    Transaction,
+    TransactionLog,
+)
 
 load_dotenv(".env", override=True)
 
@@ -67,7 +72,7 @@ async def login() -> MonarchMoney:
 
 async def get_transactions_for_account(
     mm: MonarchMoney, account_id: str, num_days: int = 60
-) -> list[Transaction]:
+) -> TransactionLog:
     """
     Get transactions for a specific account.
 
@@ -119,7 +124,7 @@ async def get_transactions_for_account(
         standardize_monarch_transaction(tx) for tx in raw_transactions
     ]
 
-    return standardized_transactions
+    return TransactionLog(transactions=standardized_transactions)
 
 
 async def get_portfolio_for_account(mm: MonarchMoney, account_id: str) -> Portfolio:
