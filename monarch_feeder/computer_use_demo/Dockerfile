@@ -15,6 +15,9 @@ WORKDIR /home/computeruse
 # This ensures local modifications override any installed package
 COPY --chown=computeruse:computeruse monarch_feeder/computer_use_demo/ ./computer_use_demo/
 
+# Copy .env file if it exists (for environment variables like MFA secrets)  
+COPY --chown=computeruse:computeruse .env* ./
+
 # Copy the generic entrypoint script
 COPY --chown=computeruse:computeruse monarch_feeder/computer_use_demo/entrypoint_generic.sh ./entrypoint_generic.sh
 RUN chmod +x ./entrypoint_generic.sh
