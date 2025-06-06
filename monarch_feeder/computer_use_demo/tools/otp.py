@@ -10,12 +10,10 @@ class OTPTool20250124(BaseAnthropicTool):
     Uses oathtool to generate TOTP codes from environment variables.
     """
 
-    api_type: Literal["otp_20250124"] = "otp_20250124"
     name: Literal["generate_otp"] = "generate_otp"
 
     def to_params(self) -> Any:
         return {
-            "type": self.api_type,
             "name": self.name,
             "description": "Generate a one-time password (OTP) for multi-factor authentication using a configured secret key.",
             "input_schema": {
@@ -76,6 +74,4 @@ class OTPTool20250124(BaseAnthropicTool):
 
 # For backward compatibility, create alias for older versions
 class OTPTool20241022(OTPTool20250124):
-    api_type: Literal["otp_20250124"] = (
-        "otp_20250124"  # pyright: ignore[reportIncompatibleVariableOverride]
-    )
+    pass

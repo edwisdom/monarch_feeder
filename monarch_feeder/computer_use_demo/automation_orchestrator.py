@@ -12,8 +12,7 @@ from typing import Callable
 
 from dotenv import load_dotenv
 
-from monarch_feeder.computer_use_demo.models import Portfolio, Transaction
-
+from .models import Portfolio, Transaction
 from .programmatic_runner import ProgrammaticRunner, SubTask, TaskConfig
 
 # Load environment variables
@@ -237,7 +236,7 @@ async def main():
         sys.exit(1)
 
     # Parse automation list from environment or command line
-    automation_list = os.getenv("AUTOMATION_LIST", "human_interest")
+    automation_list = os.getenv("AUTOMATION_LIST")
     automations = [name.strip() for name in automation_list.split(",")]
 
     # Allow command line override

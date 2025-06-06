@@ -3,7 +3,6 @@ Programmatic runner for computer use tasks.
 Allows executing pre-defined prompts and saving results without interactive UI.
 """
 
-import asyncio
 import json
 import logging
 import os
@@ -290,7 +289,7 @@ class ProgrammaticRunner:
             duration = (end_time - start_time).total_seconds()
 
             # Take final screenshot if possible
-            final_screenshot_path = self._take_final_screenshot()
+            final_screenshot_path = await self._take_final_screenshot()
 
             result = TaskResult(
                 task_name=task.name,
@@ -337,7 +336,7 @@ class ProgrammaticRunner:
         """Callback for handling API responses."""
         pass  # Simplified - no longer tracking API responses
 
-    def _take_final_screenshot(self) -> Optional[str]:
+    async def _take_final_screenshot(self) -> Optional[str]:
         """Take a final screenshot and save it."""
         try:
             # Import computer tool to take screenshot
@@ -345,7 +344,7 @@ class ProgrammaticRunner:
 
             computer = ComputerTool20250124()
 
-            result = asyncio.run(computer.screenshot())
+            result = await computer.screenshot()
             if result.output and hasattr(result, "base64_image"):
                 screenshot_filename = f"{self.current_task_name}_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
                 screenshot_path = self.screenshots_dir / screenshot_filename

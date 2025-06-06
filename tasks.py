@@ -8,8 +8,6 @@ from pathlib import Path
 
 from invoke import Context, task
 
-from monarch_feeder.computer_use_demo.automation_orchestrator import AutomationType
-
 # Shared container configuration
 CONTAINER_IMAGE = "computer-use-automation"
 CONTAINER_NAME_PREFIX = "automation"
@@ -20,7 +18,8 @@ DEFAULT_OUTPUT_DIR = "automation_outputs"
 DEFAULT_SCREENSHOT_DIR = "automation_screenshots"
 
 # Available automations (corresponds to AutomationType enum values)
-AVAILABLE_AUTOMATIONS = [automation.value for automation in AutomationType]
+# AVAILABLE_AUTOMATIONS = [automation.value for automation in AutomationType]
+AVAILABLE_AUTOMATIONS = ["rippling"]
 
 
 def ensure_env_file(ctx: Context) -> None:
@@ -200,4 +199,4 @@ def shell(ctx: Context) -> None:
 def build_and_run_all(ctx: Context) -> None:
     """Build and run all automations (convenience alias)."""
     build(ctx)
-    run(ctx, AVAILABLE_AUTOMATIONS.join(","))
+    run(ctx, (",").join(AVAILABLE_AUTOMATIONS))
