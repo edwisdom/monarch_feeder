@@ -31,7 +31,7 @@ ENV HEIGHT=768
 ENV DISPLAY_NUM=1
 
 # Set default automation list (can be overridden)
-ENV AUTOMATION_LIST=human_interest
+ENV AUTOMATION_LIST=rippling
 
 # Use the entrypoint script which properly starts services and runs the orchestrator
 ENTRYPOINT ["./entrypoint_generic.sh"] 

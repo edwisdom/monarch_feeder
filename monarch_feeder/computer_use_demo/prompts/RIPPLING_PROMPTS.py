@@ -18,6 +18,9 @@ login = Template(
     8. When you reach the 2FA/OTP prompt:
        - Call the generate_otp tool with service="rippling"
        - Enter the OTP code from the tool response into the 2FA field
-       - Click "Verify" to complete authentication
+       - Click "Verify" to complete authentication. If for some reason the OTP is not working, you can try again by calling the generate_otp tool once again.
+    9. Then, click on the address bar and visit the URL {{ hsa_dashboard_url }}. 
+    10. Look for a button labeled "Log in to your HSA account" and click on it. This will open a new tab and after a few seconds, you will see a page with different benefit accounts.
+    11. It is possible that you instead see a page that prompts you to login again. If this happens, exit the tab, and in the previous tab, click on the "Log in to your HSA account" button again.
     """
 )

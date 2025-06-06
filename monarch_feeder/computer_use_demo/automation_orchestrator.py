@@ -8,7 +8,7 @@ import os
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable
 
 from dotenv import load_dotenv
 
@@ -24,6 +24,7 @@ class AutomationType(Enum):
     """Supported automation types."""
 
     HUMAN_INTEREST = "human_interest"
+    RIPPLING = "rippling"
 
 
 def create_human_interest_task() -> TaskConfig:
@@ -70,9 +71,40 @@ def create_human_interest_task() -> TaskConfig:
     )
 
 
+def create_rippling_task() -> TaskConfig:
+    """Create Rippling automation task configuration."""
+    from .prompts.RIPPLING_PROMPTS import login
+
+    base_url = os.getenv("RIPPLING_BASE_URL")
+    email = os.getenv("RIPPLING_EMAIL")
+    password = os.getenv("RIPPLING_PASSWORD")
+    hsa_dashboard_url = os.getenv("RIPPLING_HSA_DASHBOARD_URL")
+
+    subtasks = [
+        SubTask(
+            name="login",
+            prompt=login.render(
+                base_url=base_url,
+                email=email,
+                password=password,
+                hsa_dashboard_url=hsa_dashboard_url,
+            ),
+            save_output=False,
+            description="Log into Rippling platform",
+        ),
+    ]
+
+    return TaskConfig(
+        name="rippling",
+        description="Extract data from Rippling platform",
+        subtasks=subtasks,
+    )
+
+
 # Mapping from automation types to their task creation functions
 AUTOMATION_TASK_CREATORS: dict[AutomationType, Callable[[], TaskConfig]] = {
     AutomationType.HUMAN_INTEREST: create_human_interest_task,
+    AutomationType.RIPPLING: create_rippling_task,
 }
 
 
@@ -124,7 +156,7 @@ class AutomationOrchestrator:
             raise ValueError(f"No task creator found for {automation_type.value}")
         return creator_func()
 
-    async def run_automations(self, automation_names: List[str]) -> None:
+    async def run_automations(self, automation_names: list[str]) -> None:
         """Run multiple automations by name."""
         if not automation_names:
             print("❌ No automations specified")
