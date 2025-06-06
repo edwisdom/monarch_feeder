@@ -46,6 +46,7 @@ async def login() -> MonarchMoney:
 
     # Otherwise, perform a fresh login
     print("Performing fresh login")
+    mm = MonarchMoney()
     email = os.environ.get("MONARCH_EMAIL")
     password = os.environ.get("MONARCH_PASSWORD")
     secret = os.environ.get("MONARCH_MFA_SECRET")
