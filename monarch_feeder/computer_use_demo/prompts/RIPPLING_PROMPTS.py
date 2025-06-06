@@ -26,3 +26,43 @@ login = Template(
         If this happens, exit the tab, and in the previous tab, click on the "Log in to your HSA account" button again so that you see the benefit accounts.
     """
 )
+
+hsa_transactions = Template(
+    """
+    1. Navigate to the URL {{ hsa_transactions_url }}. Scroll down to the "Activity" section.
+    2. Click on the "Type: All" dropdown and click on all the options EXCEPT for "Investment". 
+    3. Click away from the dropdown somewhere in the empty space on the page so you can see the transactions clearly.
+    4. Parse each transaction and return a JSON list of dictionaries with the following fields:
+        - date (string): Use YYYY-MM-DD format.
+        - user_account (string): The HSA account. Always fill this in as "Elevate UMB - Espresso HSA".
+        - counterparty_account (string): The other account in this transaction.
+            Use the description of the transaction as the counterparty account.
+        - amount (float): The amount of the transaction.
+    5. Return only the JSON list in your response, with no other text. 
+    """
+)
+
+hsa_portfolio = Template(
+    """
+    1. Navigate to the URL {{ hsa_portfolio_url }}.
+    2. Scroll down to the "Funds" section and click on the "View Details" button.
+    3. Parse each holding in the expanded "Funds" section and return a JSON list of dictionaries with the following fields:
+        - stock_ticker (string): The stock ticker symbol
+        - shares (float): The number of shares held. Make sure that you report the number of shares, not any dollar value.
+    4. Return only the JSON list in your response, with no other text.
+    """
+)
+
+commuter_benefits = Template(
+    """
+    1. Navigate to the URL {{ commuter_benefits_url }}.
+    2. Scroll down to the "Activity" section.
+    3. Parse each transaction and return a JSON list of dictionaries with the following fields:
+        - date (string): Use YYYY-MM-DD format.
+        - user_account (string): The commuter account. Always fill this in as "Espresso Commuter Benefit - Rippling".
+        - counterparty_account (string): The other account in this transaction.
+            Use the description of the transaction as the counterparty account.
+        - amount (float): The amount of the transaction.
+    4. Return only the JSON list in your response, with no other text. 
+    """
+)
