@@ -32,6 +32,11 @@ class Transaction(BaseModel):
             raise ValueError("Date must be in YYYY-MM-DD format")
         return v
 
+    def __hash__(self):
+        return hash(
+            (self.date, self.user_account, self.counterparty_account, self.amount)
+        )
+
 
 class TransactionLog(BaseModel):
     """Log of transactions."""
