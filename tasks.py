@@ -19,7 +19,7 @@ DEFAULT_SCREENSHOT_DIR = "automation_screenshots"
 
 # Available automations (corresponds to AutomationType enum values)
 # AVAILABLE_AUTOMATIONS = [automation.value for automation in AutomationType]
-AVAILABLE_AUTOMATIONS = ["rippling"]
+AVAILABLE_AUTOMATIONS = ["human_interest", "rippling"]
 
 
 def ensure_env_file(ctx: Context) -> None:
