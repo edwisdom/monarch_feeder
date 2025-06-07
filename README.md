@@ -130,6 +130,11 @@ RIPPLING_PASSWORD=yourpassword
 ANTHROPIC_API_KEY=sk-ant-putyourkeyhere  # For Claude AI automation
 ```
 
+### Other
+```bash
+EMPLOYER_NAME=your_employer_name # For prompting and account naming
+```
+
 ## 🛠️ Available Commands
 
 The project uses [Invoke](https://pyinvoke.org/) for task management.
