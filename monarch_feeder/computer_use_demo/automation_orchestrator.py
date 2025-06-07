@@ -18,6 +18,8 @@ from .programmatic_runner import ProgrammaticRunner, SubTask, TaskConfig
 # Load environment variables
 load_dotenv()
 
+DEFAULT_OUTPUT_DIR = "automation_outputs"
+
 
 class AutomationType(Enum):
     """Supported automation types."""

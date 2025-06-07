@@ -61,6 +61,10 @@ class TransactionLog(BaseModel):
         ]
         return cls(transactions=transactions)
 
+    def __len__(self) -> int:
+        """Return the number of transactions in the log."""
+        return len(self.transactions)
+
 
 class Holding(BaseModel):
     """Individual portfolio holding with stock ticker and share count."""
@@ -148,10 +152,14 @@ class Portfolio(BaseModel):
 
         return cls(holdings=holdings)
 
+    def __len__(self) -> int:
+        """Return the number of holdings in the portfolio."""
+        return len(self.holdings)
+
 
 def get_transaction_log_diff(
-    new_log: list[Transaction], old_log: list[Transaction]
-) -> list[Transaction]:
+    new_log: TransactionLog, old_log: TransactionLog
+) -> TransactionLog:
     """Reconcile two lists of transactions.
 
     Returns transactions that are in new_log but not in old_log.
@@ -173,11 +181,11 @@ def get_transaction_log_diff(
     new_groups = defaultdict(list)
     old_groups = defaultdict(list)
 
-    for transaction in new_log:
+    for transaction in new_log.transactions:
         key = (transaction.date, transaction.amount)
         new_groups[key].append(transaction)
 
-    for transaction in old_log:
+    for transaction in old_log.transactions:
         key = (transaction.date, transaction.amount)
         old_groups[key].append(transaction)
 
@@ -195,4 +203,4 @@ def get_transaction_log_diff(
             excess_count = new_count - old_count
             new_transactions.extend(new_group[:excess_count])
 
-    return new_transactions
+    return TransactionLog(transactions=new_transactions)

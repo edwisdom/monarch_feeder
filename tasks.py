@@ -4,9 +4,13 @@ Invoke tasks for computer use automation.
 Replaces shell scripts with a clean, extensible Python interface.
 """
 
+import asyncio
 from pathlib import Path
 
 from invoke import Context, task
+
+from monarch_feeder.computer_use_demo.automation_orchestrator import DEFAULT_OUTPUT_DIR
+from monarch_feeder.sync import sync_data_to_monarch
 
 # Shared container configuration
 CONTAINER_IMAGE = "computer-use-automation"
@@ -14,7 +18,6 @@ CONTAINER_NAME_PREFIX = "automation"
 DOCKERFILE = "monarch_feeder/computer_use_demo/Dockerfile"
 
 # Default output directories
-DEFAULT_OUTPUT_DIR = "automation_outputs"
 
 # Available automations (corresponds to AutomationType enum values)
 # AVAILABLE_AUTOMATIONS = [automation.value for automation in AutomationType]
@@ -195,3 +198,17 @@ def build_and_run_all(ctx: Context) -> None:
     """Build and run all automations (convenience alias)."""
     build(ctx)
     run(ctx, (",").join(AVAILABLE_AUTOMATIONS))
+
+
+@task
+def sync_data(ctx: Context, dry_run: bool = False) -> None:
+    """Sync data to Monarch Money."""
+    asyncio.run(sync_data_to_monarch(dry_run))
+
+
+@task
+def build_run_and_sync(ctx: Context, dry_run: bool = False) -> None:
+    """Build, run all automations, and sync to Monarch Money (complete workflow)."""
+    build(ctx)
+    run(ctx, (",").join(AVAILABLE_AUTOMATIONS))
+    sync_data(ctx, dry_run=dry_run)
