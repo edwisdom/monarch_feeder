@@ -5,7 +5,7 @@ FROM ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
 
 # Switch to root to install additional packages if needed
 USER root
-RUN pip install python-dotenv==1.1.0 instructor[anthropic]==1.8.3
+RUN pip install python-dotenv==1.1.0 instructor[anthropic]==1.8.3 oathtool==2.4.0
 
 # Switch back to computeruse user
 USER computeruse
