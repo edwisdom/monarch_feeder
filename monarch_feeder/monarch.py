@@ -178,7 +178,11 @@ async def get_portfolio_for_account(mm: MonarchMoney, account_id: str) -> Portfo
 
 
 async def add_transaction_to_account(
-    mm: MonarchMoney, transaction: Transaction, account_id: str, category_id: str
+    mm: MonarchMoney,
+    transaction: Transaction,
+    account_id: str,
+    category_id: str,
+    update_balance: bool = False,
 ) -> bool:
     """
     Add a transaction to an account.
@@ -199,6 +203,7 @@ async def add_transaction_to_account(
         amount=transaction.amount,
         merchant_name=transaction.counterparty_account,
         category_id=category_id,
+        update_balance=update_balance,
     )
 
     return response
@@ -247,12 +252,10 @@ async def update_account_holdings(
 
         # Update existing holdings that have changed quantities
         for ticker, target_holding_data in target_holdings_map.items():
+            target_shares = target_holding_data.shares
             if ticker in current_holdings_map:
                 current_holding_data = current_holdings_map[ticker]
-                current_shares, target_shares = (
-                    current_holding_data.shares,
-                    target_holding_data.shares,
-                )
+                current_shares = current_holding_data.shares
                 holding_id = current_holding_data.holding_id
                 if abs(current_shares - target_shares) > 0.0001:
                     await mm.delete_manual_holding(holding_id)
