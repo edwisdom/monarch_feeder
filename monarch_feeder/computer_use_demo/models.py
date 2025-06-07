@@ -76,9 +76,15 @@ class Holding(BaseModel):
     @field_validator("stock_ticker")
     @classmethod
     def validate_ticker(cls, v):
-        """Ensure stock ticker is uppercase and alphanumeric."""
-        if not v.isalpha():
-            raise ValueError("Stock ticker must contain only letters")
+        """Ensure stock ticker is a valid format."""
+        # Allow alphanumeric characters and common separators used in tickers
+        allowed_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/-.")
+        if not v or not all(c.upper() in allowed_chars for c in v):
+            raise ValueError(
+                "Stock ticker must contain only letters, numbers, and common separators (:/-.)"
+            )
+        if len(v) > 20:  # Reasonable length limit
+            raise ValueError("Stock ticker must be 20 characters or less")
         return v.upper()
 
     @field_validator("shares")
