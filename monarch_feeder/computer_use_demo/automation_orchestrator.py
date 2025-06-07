@@ -12,7 +12,7 @@ from typing import Callable
 
 from dotenv import load_dotenv
 
-from .models import Portfolio, Transaction
+from .models import Portfolio, Transaction, TransactionLog
 from .programmatic_runner import ProgrammaticRunner, SubTask, TaskConfig
 
 # Load environment variables
@@ -46,6 +46,7 @@ def create_human_interest_task() -> TaskConfig:
             ),
             save_output=False,
             description="Log into Human Interest platform",
+            clear_session=True,
         ),
         SubTask(
             name="portfolio",
@@ -53,6 +54,7 @@ def create_human_interest_task() -> TaskConfig:
             save_output=True,
             description="Extract portfolio information",
             response_model=Portfolio,
+            clear_session=True,
         ),
         SubTask(
             name="transactions",
@@ -60,6 +62,7 @@ def create_human_interest_task() -> TaskConfig:
             save_output=True,
             description="Extract transaction history",
             response_model=list[Transaction],
+            clear_session=True,
         ),
     ]
 
@@ -72,12 +75,20 @@ def create_human_interest_task() -> TaskConfig:
 
 def create_rippling_task() -> TaskConfig:
     """Create Rippling automation task configuration."""
-    from .prompts.RIPPLING_PROMPTS import login
+    from .prompts.RIPPLING_PROMPTS import (
+        commuter_benefits,
+        hsa_portfolio,
+        hsa_transactions,
+        login,
+    )
 
     base_url = os.getenv("RIPPLING_BASE_URL")
     email = os.getenv("RIPPLING_EMAIL")
     password = os.getenv("RIPPLING_PASSWORD")
     hsa_dashboard_url = os.getenv("RIPPLING_HSA_DASHBOARD_URL")
+    hsa_transactions_url = os.getenv("RIPPLING_HSA_TRANSACTIONS_URL")
+    hsa_portfolio_url = os.getenv("RIPPLING_HSA_PORTFOLIO_URL")
+    commuter_benefits_url = os.getenv("RIPPLING_COMMUTER_BENEFITS_URL")
 
     subtasks = [
         SubTask(
@@ -90,6 +101,33 @@ def create_rippling_task() -> TaskConfig:
             ),
             save_output=False,
             description="Log into Rippling platform",
+            clear_session=True,
+        ),
+        SubTask(
+            name="hsa_transactions",
+            prompt=hsa_transactions.render(hsa_transactions_url=hsa_transactions_url),
+            save_output=True,
+            description="Extract HSA transactions",
+            response_model=TransactionLog,
+            clear_session=True,
+        ),
+        SubTask(
+            name="hsa_portfolio",
+            prompt=hsa_portfolio.render(hsa_portfolio_url=hsa_portfolio_url),
+            save_output=True,
+            description="Extract HSA portfolio",
+            response_model=Portfolio,
+            clear_session=True,
+        ),
+        SubTask(
+            name="commuter_benefits",
+            prompt=commuter_benefits.render(
+                commuter_benefits_url=commuter_benefits_url
+            ),
+            save_output=True,
+            description="Extract commuter benefits",
+            response_model=TransactionLog,
+            clear_session=True,
         ),
     ]
 

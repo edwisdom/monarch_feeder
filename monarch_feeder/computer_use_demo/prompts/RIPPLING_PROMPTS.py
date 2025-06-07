@@ -31,14 +31,13 @@ hsa_transactions = Template(
     """
     1. Navigate to the URL {{ hsa_transactions_url }}. Scroll down to the "Activity" section.
     2. Click on the "Type: All" dropdown and click on all the options EXCEPT for "Investment". 
-    3. Click away from the dropdown somewhere in the empty space on the page so you can see the transactions clearly.
-    4. Parse each transaction and return a JSON list of dictionaries with the following fields:
+    3. Parse each transaction and return a JSON list of dictionaries with the following fields:
         - date (string): Use YYYY-MM-DD format.
         - user_account (string): The HSA account. Always fill this in as "Elevate UMB - Espresso HSA".
         - counterparty_account (string): The other account in this transaction.
             Use the description of the transaction as the counterparty account.
         - amount (float): The amount of the transaction.
-    5. Return only the JSON list in your response, with no other text. 
+    4. Return only the JSON list in your response, with no other text. 
     """
 )
 
