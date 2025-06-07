@@ -15,7 +15,6 @@ DOCKERFILE = "monarch_feeder/computer_use_demo/Dockerfile"
 
 # Default output directories
 DEFAULT_OUTPUT_DIR = "automation_outputs"
-DEFAULT_SCREENSHOT_DIR = "automation_screenshots"
 
 # Available automations (corresponds to AutomationType enum values)
 # AVAILABLE_AUTOMATIONS = [automation.value for automation in AutomationType]
@@ -36,7 +35,6 @@ def ensure_env_file(ctx: Context) -> None:
 def ensure_output_dirs() -> None:
     """Ensure output directories exist."""
     Path(DEFAULT_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    Path(DEFAULT_SCREENSHOT_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def image_exists(ctx: Context, image_name: str) -> bool:
@@ -144,7 +142,6 @@ def run(
         f"-e AUTO_EXIT=true "
         f"-e AUTOMATION_LIST={','.join(automation_list)} "
         f"-v $(pwd)/{DEFAULT_OUTPUT_DIR}:/home/computeruse/{DEFAULT_OUTPUT_DIR} "
-        f"-v $(pwd)/{DEFAULT_SCREENSHOT_DIR}:/home/computeruse/{DEFAULT_SCREENSHOT_DIR} "
         f"{CONTAINER_IMAGE}",
         pty=True,
     )
@@ -154,7 +151,6 @@ def run(
     print("📁 Results saved to automation-specific directories:")
     for automation in automation_list:
         print(f"   - {DEFAULT_OUTPUT_DIR}/{automation}/ (JSON data)")
-        print(f"   - {DEFAULT_SCREENSHOT_DIR}/{automation}/ (screenshots)")
 
 
 @task
@@ -187,7 +183,6 @@ def shell(ctx: Context) -> None:
         f"docker run --rm -it --name {container_name} "
         f"--env-file .env "
         f"-v $(pwd)/{DEFAULT_OUTPUT_DIR}:/home/computeruse/{DEFAULT_OUTPUT_DIR} "
-        f"-v $(pwd)/{DEFAULT_SCREENSHOT_DIR}:/home/computeruse/{DEFAULT_SCREENSHOT_DIR} "
         f"--entrypoint bash "
         f"{CONTAINER_IMAGE}",
         pty=True,

@@ -93,7 +93,6 @@ class TaskResult:
     duration_seconds: float
     subtask_results: List[SubTaskResult]
     error: Optional[str] = None
-    final_screenshot_path: Optional[str] = None
 
     @property
     def messages(self) -> List[BetaMessageParam]:
@@ -110,16 +109,13 @@ class ProgrammaticRunner:
     def __init__(
         self,
         api_key: str,
-        output_dir: str = "./outputs",
-        screenshots_dir: str = "./screenshots",
+        base_output_dir: str = "./outputs",
     ):
         self.api_key = api_key
-        self.output_dir = Path(output_dir)
-        self.screenshots_dir = Path(screenshots_dir)
+        self.base_output_dir = Path(base_output_dir)
 
-        # Create output directories
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.screenshots_dir.mkdir(parents=True, exist_ok=True)
+        # Create base output directory
+        self.base_output_dir.mkdir(parents=True, exist_ok=True)
 
         os.environ["WIDTH"] = "1024"  # XGA width (16:9 aspect ratio)
         os.environ["HEIGHT"] = "768"  # XGA height (16:9 aspect ratio)
@@ -288,9 +284,6 @@ class ProgrammaticRunner:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
 
-            # Take final screenshot if possible
-            final_screenshot_path = await self._take_final_screenshot()
-
             result = TaskResult(
                 task_name=task.name,
                 success=overall_success,
@@ -298,7 +291,6 @@ class ProgrammaticRunner:
                 end_time=end_time,
                 duration_seconds=duration,
                 subtask_results=subtask_results,
-                final_screenshot_path=final_screenshot_path,
             )
 
             logger.info(
@@ -320,7 +312,6 @@ class ProgrammaticRunner:
                 duration_seconds=duration,
                 subtask_results=subtask_results,
                 error=str(e),
-                final_screenshot_path=None,
             )
 
     def _output_callback(self, content: BetaContentBlockParam):
@@ -335,30 +326,6 @@ class ProgrammaticRunner:
     def _api_response_callback(self, request, response, error):
         """Callback for handling API responses."""
         pass  # Simplified - no longer tracking API responses
-
-    async def _take_final_screenshot(self) -> Optional[str]:
-        """Take a final screenshot and save it."""
-        try:
-            # Import computer tool to take screenshot
-            from .tools.computer import ComputerTool20250124
-
-            computer = ComputerTool20250124()
-
-            result = await computer.screenshot()
-            if result.output and hasattr(result, "base64_image"):
-                screenshot_filename = f"{self.current_task_name}_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-                screenshot_path = self.screenshots_dir / screenshot_filename
-
-                import base64
-
-                with open(screenshot_path, "wb") as f:
-                    f.write(base64.b64decode(result.base64_image))
-
-                return str(screenshot_path)
-        except Exception as e:
-            logger.warning(f"Failed to take final screenshot: {e}")
-
-        return None
 
     def _extract_output_from_messages(
         self, messages: List[BetaMessageParam]
@@ -402,13 +369,17 @@ class ProgrammaticRunner:
     def _save_subtask_output(
         self, subtask: SubTask, output: str, timestamp: datetime
     ) -> str:
-        """Save subtask output to file."""
+        """Save subtask output to file in subtask-specific directory."""
+        # Create subtask-specific directory
+        subtask_dir = self.base_output_dir / subtask.name
+        subtask_dir.mkdir(parents=True, exist_ok=True)
+
         if subtask.output_filename:
             filename = subtask.output_filename
         else:
             filename = f"{subtask.name}_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
 
-        output_path = self.output_dir / filename
+        output_path = subtask_dir / filename
 
         # Try to save as JSON if it's valid JSON, otherwise save as text
         try:
@@ -442,7 +413,7 @@ class ProgrammaticRunner:
         result_filename = (
             f"{result.task_name}_{result.start_time.strftime('%Y%m%d_%H%M%S')}.json"
         )
-        result_path = self.output_dir / result_filename
+        result_path = self.base_output_dir / result_filename
 
         # Convert result to serializable format
         result_data = {
@@ -452,7 +423,6 @@ class ProgrammaticRunner:
             "end_time": result.end_time.isoformat(),
             "duration_seconds": result.duration_seconds,
             "error": result.error,
-            "final_screenshot_path": result.final_screenshot_path,
             "subtask_results_count": len(result.subtask_results),
             "messages_count": len(result.messages),
         }
@@ -465,7 +435,7 @@ class ProgrammaticRunner:
     def save_detailed_result(self, result: TaskResult):
         """Save detailed task result including full messages and tool outputs."""
         result_filename = f"{result.task_name}_detailed_{result.start_time.strftime('%Y%m%d_%H%M%S')}.json"
-        result_path = self.output_dir / result_filename
+        result_path = self.base_output_dir / result_filename
 
         # Convert result to serializable format
         result_data = {
@@ -475,7 +445,6 @@ class ProgrammaticRunner:
             "end_time": result.end_time.isoformat(),
             "duration_seconds": result.duration_seconds,
             "error": result.error,
-            "final_screenshot_path": result.final_screenshot_path,
             "subtask_results": [
                 self._serialize_subtask_result(subtask_result)
                 for subtask_result in result.subtask_results

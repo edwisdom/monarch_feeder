@@ -152,26 +152,19 @@ class AutomationOrchestrator:
         self,
         api_key: str,
         base_output_dir: str = "./automation_outputs",
-        base_screenshots_dir: str = "./automation_screenshots",
     ):
         self.api_key = api_key
         self.base_output_dir = Path(base_output_dir)
-        self.base_screenshots_dir = Path(base_screenshots_dir)
 
-    def _create_automation_directories(
-        self, automation_type: AutomationType
-    ) -> tuple[str, str]:
-        """Create and return automation-specific output directories."""
+    def _create_automation_base_directory(self, automation_type: AutomationType) -> str:
+        """Create and return automation-specific base output directory."""
         automation_name = automation_type.value
+        base_dir = self.base_output_dir / automation_name
 
-        output_dir = self.base_output_dir / automation_name
-        screenshots_dir = self.base_screenshots_dir / automation_name
+        # Create base directory if it doesn't exist
+        base_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create directories if they don't exist
-        output_dir.mkdir(parents=True, exist_ok=True)
-        screenshots_dir.mkdir(parents=True, exist_ok=True)
-
-        return str(output_dir), str(screenshots_dir)
+        return str(base_dir)
 
     def _parse_automation_type(self, automation_name: str) -> AutomationType:
         """Parse automation name string to AutomationType enum."""
@@ -213,21 +206,19 @@ class AutomationOrchestrator:
                 automation_type = self._parse_automation_type(name)
                 task = self._create_task_for_automation(automation_type)
 
-                # Create automation-specific directories
-                output_dir, screenshots_dir = self._create_automation_directories(
+                # Create automation-specific base directory
+                base_output_dir = self._create_automation_base_directory(
                     automation_type
                 )
 
                 print(f"📁 {automation_type.value} outputs will be saved to:")
-                print(f"   - {output_dir}/")
-                print(f"   - {screenshots_dir}/")
+                print(f"   - {base_output_dir}/")
                 print()
 
                 # Create a runner specific to this automation
                 runner = ProgrammaticRunner(
                     api_key=self.api_key,
-                    output_dir=output_dir,
-                    screenshots_dir=screenshots_dir,
+                    base_output_dir=base_output_dir,
                 )
 
                 # Execute this automation's tasks

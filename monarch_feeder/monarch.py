@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import asyncio
 import os
 from datetime import datetime, timedelta
 from typing import Any
@@ -277,14 +276,3 @@ async def update_account_holdings(
     except Exception as e:
         print(f"Error updating account holdings: {e}")
         return False
-
-
-async def main():
-    mm = await login()
-    portfolio = Portfolio(holdings=[Holding(stock_ticker="AAPL", shares=0.15)])
-    account_id = os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID")
-    success = await update_account_holdings(mm, account_id, portfolio)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
