@@ -14,7 +14,7 @@ login = Template(
     4. Click on the "Email" form and fill in the field with the email from the credentials above. Click on the "Continue" button.
     5. Click on the "Password" form and fill in the field with the password from the credentials above. Click on the "Sign In" button.
     6. If at any point, there is a captcha, please resolve it yourself by clicking where needed.
-    7. Then, you will see the option between "Espresso AI" and "Bigeye" — choose "Espresso AI".
+    7. If you see multiple options for companies, choose {{ employer_name }}.
     8. When you reach the 2FA/OTP prompt:
        - Call the generate_otp tool with service="rippling"
        - Enter the OTP code from the tool response into the 2FA field
@@ -33,7 +33,7 @@ hsa_transactions = Template(
     2. Click on the "Type: All" dropdown and click on all the options EXCEPT for "Investment". 
     3. Parse each transaction and return a JSON list of dictionaries with the following fields:
         - date (string): Use YYYY-MM-DD format.
-        - user_account (string): The HSA account. Always fill this in as "Elevate UMB - Espresso HSA".
+        - user_account (string): The HSA account. Always fill this in as "Elevate UMB - {{ employer_name }} HSA".
         - counterparty_account (string): The other account in this transaction.
             Use the description of the transaction as the counterparty account.
         - amount (float): The amount of the transaction.
@@ -58,7 +58,7 @@ commuter_benefits = Template(
     2. Scroll down to the "Activity" section.
     3. Parse each transaction and return a JSON list of dictionaries with the following fields:
         - date (string): Use YYYY-MM-DD format.
-        - user_account (string): The commuter account. Always fill this in as "Espresso Commuter Benefit - Rippling".
+        - user_account (string): The commuter account. Always fill this in as "{{ employer_name }} Commuter Benefit - Rippling".
         - counterparty_account (string): The other account in this transaction.
             Use the description of the transaction as the counterparty account.
         - amount (float): The amount of the transaction.

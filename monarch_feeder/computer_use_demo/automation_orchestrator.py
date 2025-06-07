@@ -37,6 +37,7 @@ def create_human_interest_task() -> TaskConfig:
     password = os.getenv("HUMAN_INTEREST_PASSWORD")
     transactions_url = os.getenv("HUMAN_INTEREST_TRANSACTIONS_URL")
     portfolio_url = os.getenv("HUMAN_INTEREST_PORTFOLIO_URL")
+    employer_name = os.getenv("EMPLOYER_NAME")
 
     subtasks = [
         SubTask(
@@ -60,7 +61,9 @@ def create_human_interest_task() -> TaskConfig:
         ),
         SubTask(
             name="transactions",
-            prompt=transactions.render(transactions_url=transactions_url),
+            prompt=transactions.render(
+                transactions_url=transactions_url, employer_name=employer_name
+            ),
             save_output=True,
             description="Extract transaction history",
             response_model=list[Transaction],
@@ -91,6 +94,7 @@ def create_rippling_task() -> TaskConfig:
     hsa_transactions_url = os.getenv("RIPPLING_HSA_TRANSACTIONS_URL")
     hsa_portfolio_url = os.getenv("RIPPLING_HSA_PORTFOLIO_URL")
     commuter_benefits_url = os.getenv("RIPPLING_COMMUTER_BENEFITS_URL")
+    employer_name = os.getenv("EMPLOYER_NAME")
 
     subtasks = [
         SubTask(
@@ -100,6 +104,7 @@ def create_rippling_task() -> TaskConfig:
                 email=email,
                 password=password,
                 hsa_dashboard_url=hsa_dashboard_url,
+                employer_name=employer_name,
             ),
             save_output=False,
             description="Log into Rippling platform",
@@ -107,7 +112,9 @@ def create_rippling_task() -> TaskConfig:
         ),
         SubTask(
             name="hsa_transactions",
-            prompt=hsa_transactions.render(hsa_transactions_url=hsa_transactions_url),
+            prompt=hsa_transactions.render(
+                hsa_transactions_url=hsa_transactions_url, employer_name=employer_name
+            ),
             save_output=True,
             description="Extract HSA transactions",
             response_model=TransactionLog,
@@ -124,7 +131,7 @@ def create_rippling_task() -> TaskConfig:
         SubTask(
             name="commuter_benefits",
             prompt=commuter_benefits.render(
-                commuter_benefits_url=commuter_benefits_url
+                commuter_benefits_url=commuter_benefits_url, employer_name=employer_name
             ),
             save_output=True,
             description="Extract commuter benefits",

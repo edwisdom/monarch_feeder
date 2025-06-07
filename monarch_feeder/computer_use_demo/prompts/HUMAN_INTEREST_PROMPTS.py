@@ -23,7 +23,7 @@ transactions = Template(
     3. Ignore any transactions labeled as "Trade." Do not click on any other elements on this page.
     4. Parse each transaction and return a JSON list of dictionaries with the following fields:
         - date (string): Use YYYY-MM-DD format.
-        - user_account (string): The 401k user account. Always fill this in as "Human Interest - Espresso 401k".
+        - user_account (string): The 401k user account. Always fill this in as "Human Interest - {{ employer_name }} 401k".
         - counterparty_account (string): The other account in this transaction.
             Make sure this is separate for employee vs. employer vs. rollover contributions.
             Don't call this account "in-progress" or "pending" -- just call it "Employee Contribution", "Employer Contribution", "Rollover", etc.
