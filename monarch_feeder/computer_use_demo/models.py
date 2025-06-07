@@ -163,6 +163,12 @@ def get_transaction_log_diff(
     to determine which transactions are new and which are old. This seems
     unnecessary in 99.99% of cases for this application, so it hasn't been implemented.
     """
+    if len(new_log) == 0:
+        return []
+
+    if len(old_log) == 0:
+        return new_log
+
     # Group transactions by (date, amount)
     new_groups = defaultdict(list)
     old_groups = defaultdict(list)
