@@ -36,6 +36,7 @@ class SyncConfig:
     subtask_name: str
     account_id: str
     category_id: str | None = None
+    update_balance: bool = False
 
     def get_pattern(self) -> str:
         return f"{DEFAULT_OUTPUT_DIR}/{self.automation_type.value}/{self.subtask_name}/*.json"
@@ -49,6 +50,7 @@ SYNC_CONFIGS = [
         subtask_name="transactions",
         account_id=os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID"),
         category_id=os.getenv("MONARCH_HUMAN_INTEREST_CATEGORY_ID"),
+        update_balance=False,
     ),
     SyncConfig(
         name="Human Interest Portfolio",
@@ -56,6 +58,7 @@ SYNC_CONFIGS = [
         automation_type=AutomationType.HUMAN_INTEREST,
         subtask_name="portfolio",
         account_id=os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID"),
+        update_balance=False,
     ),
     SyncConfig(
         name="Rippling HSA Transactions",
@@ -64,6 +67,7 @@ SYNC_CONFIGS = [
         subtask_name="hsa_transactions",
         account_id=os.getenv("MONARCH_ELEVATE_UMB_ACCOUNT_ID"),
         category_id=os.getenv("MONARCH_ELEVATE_UMB_CATEGORY_ID"),
+        update_balance=False,
     ),
     SyncConfig(
         name="Rippling HSA Portfolio",
@@ -71,6 +75,7 @@ SYNC_CONFIGS = [
         automation_type=AutomationType.RIPPLING,
         subtask_name="hsa_portfolio",
         account_id=os.getenv("MONARCH_ELEVATE_UMB_ACCOUNT_ID"),
+        update_balance=False,
     ),
     SyncConfig(
         name="Rippling Commuter Benefits",
@@ -79,6 +84,7 @@ SYNC_CONFIGS = [
         subtask_name="commuter_benefits",
         account_id=os.getenv("MONARCH_RIPPLING_COMMUTER_ACCOUNT_ID"),
         category_id=os.getenv("MONARCH_RIPPLING_COMMUTER_CATEGORY_ID"),
+        update_balance=True,
     ),
 ]
 
@@ -131,7 +137,11 @@ async def sync_transactions_to_monarch(
             )
         else:
             success = await add_transaction_to_account(
-                mm, transaction, config.account_id, config.category_id
+                mm,
+                transaction,
+                config.account_id,
+                config.category_id,
+                update_balance=config.update_balance,
             )
             if not success:
                 print(
