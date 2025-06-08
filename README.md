@@ -186,11 +186,6 @@ automation_outputs/
     │   └── rippling_hsa_portfolio_{yyyymmdd}_{hhmmss}.json
     └── commuter_benefits/
         └── rippling_commuter_benefits_{yyyymmdd}_{hhmmss}.json
-
-automation_logs/
-├── automation_human_interest_{yyyymmdd}_{hhmmss}.log
-├── automation_rippling_{yyyymmdd}_{hhmmss}.log
-└── automation_human_interest-rippling_{yyyymmdd}_{hhmmss}.log
 ```
 
 ## 🔧 How It Works

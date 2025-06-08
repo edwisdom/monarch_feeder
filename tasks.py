@@ -3,8 +3,8 @@
 Invoke tasks for computer use automation.
 Replaces shell scripts with a clean, extensible Python interface.
 """
+
 import asyncio
-from datetime import datetime
 from pathlib import Path
 
 from invoke import Context, task
@@ -136,38 +136,21 @@ def run(
     print(f"🚀 Running automation(s): {', '.join(automation_list)}")
     print("📊 This will extract your data")
     print("⏱️  This may take several minutes to complete")
-
-    # Set up logging
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = f"automation_logs/automation_{'-'.join(automation_list)}_{timestamp}.log"
-
-    # Ensure log directory exists
-    log_path = Path(log_file)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-
-    print(f"📝 Logging container output to: {log_file}")
     print()
 
     # Run the container using the entrypoint script with auto-exit enabled
-    # Use tee to both display output and save to log file
-    docker_cmd = (
+    ctx.run(
         f"docker run --rm --name {container_name} "
         f"--env-file .env "
         f"-e AUTO_EXIT=true "
         f"-e AUTOMATION_LIST={','.join(automation_list)} "
         f"-v $(pwd)/{DEFAULT_OUTPUT_DIR}:/home/computeruse/{DEFAULT_OUTPUT_DIR} "
-        f"{CONTAINER_IMAGE}"
+        f"{CONTAINER_IMAGE}",
+        pty=True,
     )
-
-    # Combine docker command with tee to capture output
-    full_cmd = f"{docker_cmd} 2>&1 | tee {log_file}"
-
-    ctx.run(full_cmd, pty=False)
 
     print()
     print("✅ Automation completed!")
-    print(f"📝 Full log saved to: {log_file}")
     print("📁 Results saved to automation-specific directories:")
     for automation in automation_list:
         print(f"   - {DEFAULT_OUTPUT_DIR}/{automation}/ (JSON data)")
