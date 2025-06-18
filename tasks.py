@@ -194,6 +194,13 @@ def shell(ctx: Context) -> None:
 
 # Convenience aliases
 @task
+def build_and_run(ctx: Context, automations: str = "human_interest") -> None:
+    """Build and run the specified automations."""
+    build(ctx)
+    run(ctx, automations)
+
+
+@task
 def build_and_run_all(ctx: Context) -> None:
     """Build and run all automations (convenience alias)."""
     build(ctx)
@@ -207,7 +214,17 @@ def sync_data(ctx: Context, dry_run: bool = False) -> None:
 
 
 @task
-def build_run_and_sync(ctx: Context, dry_run: bool = False) -> None:
+def build_and_run_and_sync(
+    ctx: Context, automations: str = "human_interest", dry_run: bool = False
+) -> None:
+    """Build, run, and sync the specified automations."""
+    build(ctx)
+    run(ctx, automations)
+    sync_data(ctx, dry_run=dry_run)
+
+
+@task
+def build_run_and_sync_all(ctx: Context, dry_run: bool = False) -> None:
     """Build, run all automations, and sync to Monarch Money (complete workflow)."""
     build(ctx)
     run(ctx, (",").join(AVAILABLE_AUTOMATIONS))
