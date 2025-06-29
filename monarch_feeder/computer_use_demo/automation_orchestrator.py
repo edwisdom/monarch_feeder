@@ -275,11 +275,17 @@ async def main():
 
     # Parse automation list from environment or command line
     automation_list = os.getenv("AUTOMATION_LIST")
-    automations = [name.strip() for name in automation_list.split(",")]
+    if automation_list:
+        automations = [name.strip() for name in automation_list.split(",")]
+    else:
+        automations = []
 
-    # Allow command line override
+    # Allow command line override - handle comma-separated values in arguments
     if len(sys.argv) > 1:
-        automations = sys.argv[1:]
+        # Flatten any comma-separated arguments
+        automations = []
+        for arg in sys.argv[1:]:
+            automations.extend([name.strip() for name in arg.split(",")])
 
     print(f"🔧 Requested automations: {automations}")
 
