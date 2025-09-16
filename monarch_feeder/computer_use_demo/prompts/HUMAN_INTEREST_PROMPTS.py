@@ -20,7 +20,7 @@ transactions = Template(
     """
     1. Click on the address bar and visit the following URL: {{ transactions_url }}
     2. Scroll down until you can see the latest transactions.
-    3. Ignore any transactions labeled as "Trade." Do not click on any other elements on this page.
+    3. Ignore any transactions labeled as "Trade" or "Under Review" or "Pending". Do not click on any other elements on this page.
     4. Parse each transaction and return a JSON list of dictionaries with the following fields:
         - date (string): Use YYYY-MM-DD format.
         - user_account (string): The 401k user account. Always fill this in as "Human Interest - {{ employer_name }} 401k".
