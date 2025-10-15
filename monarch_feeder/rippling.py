@@ -28,6 +28,76 @@ def parse_date(datetime_str: str) -> str:
     return parse_datetime(datetime_str).date().isoformat()
 
 
+def fetch_enrollments(bearer_token: str) -> dict[str, Any]:
+    """
+    Send a GET request to fetch enrollments from Rippling Elevate Accounts.
+
+    Args:
+        bearer_token: The Bearer token for authorization (JWT)
+
+    Returns:
+        The JSON response from the API containing all enrollments
+
+    Raises:
+        requests.HTTPError: If the request fails
+    """
+    api_url = "https://gateway.prod.elevateaccounts.com/enrollments"
+
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Authorization": f"Bearer {bearer_token}",
+        "DNT": "1",
+        "Origin": "https://rippling.elevateaccounts.com",
+        "Referer": "https://rippling.elevateaccounts.com/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+    }
+
+    response = requests.get(api_url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
+def parse_account_ids(response_data: list[dict[str, Any]]) -> tuple[str, str]:
+    """
+    Return the account IDs for HSA and TRANSIT commuter benefit from enrollments data.
+
+    Raises:
+        ValueError if either account is not found.
+    """
+    hsa_account_id = next(
+        (
+            str(enr["account_id"])
+            for enr in response_data
+            if enr.get("account_type") == "HSA"
+        ),
+        None,
+    )
+    commuter_account_id = next(
+        (
+            str(enr["account_id"])
+            for enr in response_data
+            if enr.get("account_type") == "TRANSIT" and "election_periods" in enr
+        ),
+        None,
+    )
+
+    if not hsa_account_id:
+        raise ValueError("HSA account not found in enrollments")
+    if not commuter_account_id:
+        raise ValueError("Commuter benefit (TRANSIT) account not found in enrollments")
+
+    return hsa_account_id, commuter_account_id
+
+
 def fetch_activities(
     bearer_token: str,
     account_id: str,
