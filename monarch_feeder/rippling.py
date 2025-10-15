@@ -20,6 +20,28 @@ load_dotenv()
 
 EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
 
+# Common headers for all Rippling API requests (excluding Authorization)
+BASE_HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Accept-Language": "en-US,en;q=0.9",
+    "DNT": "1",
+    "Origin": "https://rippling.elevateaccounts.com",
+    "Referer": "https://rippling.elevateaccounts.com/",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+    "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+}
+
+
+def get_headers(bearer_token: str) -> dict[str, str]:
+    """Return headers with authorization token."""
+    return {**BASE_HEADERS, "Authorization": f"Bearer {bearer_token}"}
+
 
 def parse_date(datetime_str: str) -> str:
     """
@@ -43,24 +65,7 @@ def fetch_enrollments(bearer_token: str) -> dict[str, Any]:
     """
     api_url = "https://gateway.prod.elevateaccounts.com/enrollments"
 
-    headers = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Authorization": f"Bearer {bearer_token}",
-        "DNT": "1",
-        "Origin": "https://rippling.elevateaccounts.com",
-        "Referer": "https://rippling.elevateaccounts.com/",
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"macOS"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-    }
-
-    response = requests.get(api_url, headers=headers)
+    response = requests.get(api_url, headers=get_headers(bearer_token))
     response.raise_for_status()
 
     return response.json()
@@ -123,30 +128,13 @@ def fetch_activities(
     """
     api_url = f"https://api.prod.elevateaccounts.com/api/api-aggregator/v2/activities/accounts/{account_id}"
 
-    headers = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Authorization": f"Bearer {bearer_token}",
-        "DNT": "1",
-        "Origin": "https://rippling.elevateaccounts.com",
-        "Referer": "https://rippling.elevateaccounts.com/",
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"macOS"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-    }
-
     params = {
         "page": page,
         "size": size,
         "has_active_hold": str(has_active_hold).lower(),
     }
 
-    response = requests.get(api_url, headers=headers, params=params)
+    response = requests.get(api_url, headers=get_headers(bearer_token), params=params)
     response.raise_for_status()
 
     return response.json()
@@ -275,24 +263,7 @@ def fetch_portfolio(
     """
     api_url = f"https://gateway.prod.elevateaccounts.com/investments/holdings?account_id={account_id}"
 
-    headers = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Authorization": f"Bearer {bearer_token}",
-        "DNT": "1",
-        "Origin": "https://rippling.elevateaccounts.com",
-        "Referer": "https://rippling.elevateaccounts.com/",
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"macOS"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-    }
-
-    response = requests.get(api_url, headers=headers)
+    response = requests.get(api_url, headers=get_headers(bearer_token))
     response.raise_for_status()
 
     return response.json()
