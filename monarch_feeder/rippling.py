@@ -9,7 +9,12 @@ import requests
 from dateutil.parser import parse as parse_datetime
 from dotenv import load_dotenv
 
-from monarch_feeder.computer_use_demo.models import Transaction, TransactionLog
+from monarch_feeder.computer_use_demo.models import (
+    Holding,
+    Portfolio,
+    Transaction,
+    TransactionLog,
+)
 
 load_dotenv()
 
@@ -178,3 +183,79 @@ def parse_activities_to_transaction_log(
         )
 
     return TransactionLog(transactions=transactions)
+
+
+def fetch_portfolio(
+    bearer_token: str,
+    account_id: str,
+) -> dict[str, Any]:
+    """
+    Send a GET request to fetch portfolio holdings from Rippling Elevate Accounts.
+
+    Args:
+        bearer_token: The Bearer token for authorization (JWT)
+        account_id: The account ID to fetch holdings for
+
+    Returns:
+        The JSON response from the API
+
+    Raises:
+        requests.HTTPError: If the request fails
+    """
+    api_url = f"https://gateway.prod.elevateaccounts.com/investments/holdings?account_id={account_id}"
+
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Authorization": f"Bearer {bearer_token}",
+        "DNT": "1",
+        "Origin": "https://rippling.elevateaccounts.com",
+        "Referer": "https://rippling.elevateaccounts.com/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+    }
+
+    response = requests.get(api_url, headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
+def parse_portfolio_response(response_data: dict[str, Any]) -> Portfolio:
+    """
+    Parse Rippling Elevate Accounts portfolio response into a Portfolio.
+
+    Args:
+        response_data: The JSON response from the holdings API
+
+    Returns:
+        A Portfolio containing all holdings from the investor's portfolio
+
+    Notes:
+        - Each holding is converted to a Holding with:
+          * stock_ticker: The symbol field (e.g., "IVV", "IEFA")
+          * shares: The shares field (number of shares held)
+        - Holdings with zero shares are excluded
+    """
+    holdings = []
+    investor_holdings = response_data.get("investor", {}).get("holdings", [])
+
+    for holding_data in investor_holdings:
+        symbol = holding_data.get("symbol")
+        shares = holding_data.get("shares", 0)
+
+        if shares > 0:
+            holdings.append(
+                Holding(
+                    stock_ticker=symbol,
+                    shares=shares,
+                )
+            )
+
+    return Portfolio(holdings=holdings)
