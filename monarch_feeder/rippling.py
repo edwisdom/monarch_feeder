@@ -21,6 +21,13 @@ load_dotenv()
 EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
 
 
+def parse_date(datetime_str: str) -> str:
+    """
+    Parse a date string into a YYYY-MM-DD format.
+    """
+    return parse_datetime(datetime_str).date().isoformat()
+
+
 def fetch_activities(
     bearer_token: str,
     account_id: str,
@@ -99,7 +106,7 @@ def fetch_all_activities(
         requests.HTTPError: If any request fails
     """
     all_activities = []
-    page = 1
+    page = 0
     total_fetched = 0
 
     while total_fetched < max_transactions:
@@ -127,8 +134,8 @@ def fetch_all_activities(
     return {"content": all_activities}
 
 
-def parse_activities_to_transaction_log(
-    response_data: dict[str, Any], account_name: str | None = None
+def parse_activities_to_hsa_transactions(
+    response_data: dict[str, Any],
 ) -> TransactionLog:
     """
     Parse Rippling Elevate Accounts activities response into a TransactionLog.
@@ -149,9 +156,6 @@ def parse_activities_to_transaction_log(
         - Transactions with status other than "Complete" are skipped
         - Transaction types are mapped to descriptive counterparty accounts
     """
-    if account_name is None:
-        account_name = f"Rippling - {EMPLOYER_NAME} HSA"
-
     transactions = []
     content = response_data.get("content", [])
 
@@ -166,17 +170,14 @@ def parse_activities_to_transaction_log(
         if pending or investment_transaction:
             continue
 
-        status_date_raw = activity.get("status_date", "")
-        transaction_date = parse_datetime(status_date_raw).date().isoformat()
-
         amount = activity.get("amount", 0)
 
         counterparty = activity.get("memo", "")
 
         transactions.append(
             Transaction(
-                date=transaction_date,
-                user_account=account_name,
+                date=parse_date(activity.get("status_date")),
+                user_account=f"Rippling - {EMPLOYER_NAME} HSA",
                 counterparty_account=counterparty,
                 amount=amount,
             )
@@ -259,3 +260,25 @@ def parse_portfolio_response(response_data: dict[str, Any]) -> Portfolio:
             )
 
     return Portfolio(holdings=holdings)
+
+
+def parse_activities_to_commuter_benefits_transactions(
+    response_data: dict[str, Any],
+) -> TransactionLog:
+    """
+    Parse Rippling Elevate Accounts activities response into a TransactionLog.
+    """
+    transactions = []
+    content = response_data.get("content", [])
+
+    for activity in content:
+        transactions.append(
+            Transaction(
+                date=parse_date(activity.get("status_date")),
+                user_account=f"Rippling - {EMPLOYER_NAME} Commuter Benefits",
+                counterparty_account=activity.get("memo"),
+                amount=activity.get("amount"),
+            )
+        )
+
+    return TransactionLog(transactions=transactions)
