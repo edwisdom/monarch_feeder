@@ -186,9 +186,7 @@ def navigate_to_hsa(driver: Driver) -> None:
     login_button = driver.select('[data-testid="Log in to your HSA account"]')
     login_button.click()
 
-    print("Waiting for navigation to rippling.elevateaccounts.com...")
-    driver.wait_for_page_to_be("rippling.elevateaccounts.com", wait=15)
-
+    driver.sleep(30)
     print(f"Successfully navigated to HSA dashboard: {driver.current_url}")
 
 
@@ -205,7 +203,25 @@ def extract_bearer_token(driver: Driver) -> str:
     Raises:
         ValueError: If bearer token cannot be found in any storage location
     """
-    return ""
+    print("Navigating to Rippling Elevate Accounts...")
+    driver.get("https://rippling.elevateaccounts.com/")
+    driver.short_random_sleep()
+
+    print("Checking localStorage for bearer token...")
+    local_storage = driver.run_js(
+        """
+        const storage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            storage[key] = localStorage.getItem(key);
+        }
+        return storage;
+    """
+    )
+    if "token" not in local_storage:
+        raise ValueError("Bearer token not found in any storage location.")
+
+    return local_storage["token"]
 
 
 @browser(
