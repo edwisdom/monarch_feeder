@@ -164,6 +164,34 @@ def login(driver: Driver) -> None:
     print("Login completed successfully!")
 
 
+def navigate_to_hsa(driver: Driver) -> None:
+    """
+    Navigate to the HSA dashboard from the Rippling app hub.
+
+    Args:
+        driver: Botasaurus Driver instance (must be logged in)
+
+    Raises:
+        PageNotFoundException: If navigation fails or timeout is reached
+    """
+    print("Navigating to HSA...")
+    print("Clicking HSA app icon...")
+    driver.wait_for_element('[data-testid="HSA"]', wait=10)
+    hsa_icon = driver.select('[data-testid="HSA"]')
+    hsa_icon.click()
+    driver.short_random_sleep()
+
+    print("Clicking 'Log in to your HSA account' button...")
+    driver.wait_for_element('[data-testid="Log in to your HSA account"]', wait=10)
+    login_button = driver.select('[data-testid="Log in to your HSA account"]')
+    login_button.click()
+
+    print("Waiting for navigation to rippling.elevateaccounts.com...")
+    driver.wait_for_page_to_be("rippling.elevateaccounts.com", wait=15)
+
+    print(f"Successfully navigated to HSA dashboard: {driver.current_url}")
+
+
 def extract_bearer_token(driver: Driver) -> str:
     """
     Extract bearer token from browser storage after successful login.
@@ -185,12 +213,13 @@ def extract_bearer_token(driver: Driver) -> str:
     reuse_driver=False,
     output=None,
 )
-def get_bearer_token(driver: Driver) -> str:
+def get_bearer_token(driver: Driver, data: Any = None) -> str:
     """
     Orchestrator function to login to Rippling and extract bearer token.
 
     Args:
         driver: Botasaurus Driver instance (automatically injected by decorator)
+        data: Optional data parameter (automatically passed by decorator, not used)
 
     Returns:
         The bearer token as a string
@@ -199,6 +228,7 @@ def get_bearer_token(driver: Driver) -> str:
         ValueError: If credentials are not found or token cannot be extracted
     """
     login(driver)
+    navigate_to_hsa(driver)
     return extract_bearer_token(driver)
 
 
