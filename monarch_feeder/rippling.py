@@ -7,6 +7,7 @@ from typing import Any
 
 import oathtool
 import requests
+from attr import dataclass
 from botasaurus.browser import Driver, browser
 from dateutil.parser import parse as parse_datetime
 from dotenv import load_dotenv
@@ -528,3 +529,27 @@ def parse_activities_to_commuter_benefits_transactions(
         )
 
     return TransactionLog(transactions=transactions)
+
+
+@dataclass
+class RipplingData:
+    hsa_transactions: TransactionLog
+    hsa_portfolio: Portfolio
+    commuter_benefits_transactions: TransactionLog
+
+
+def get_rippling_data() -> RipplingData:
+    bearer_token = get_bearer_token()
+    hsa_account_id, commuter_benefits_account_id = parse_account_ids(
+        fetch_enrollments(bearer_token)
+    )
+    hsa_transactions = fetch_all_activities(bearer_token, hsa_account_id)
+    hsa_portfolio = fetch_portfolio(bearer_token, hsa_account_id)
+    commuter_benefits_transactions = fetch_all_activities(
+        bearer_token, commuter_benefits_account_id
+    )
+    return RipplingData(
+        hsa_transactions=hsa_transactions,
+        hsa_portfolio=hsa_portfolio,
+        commuter_benefits_transactions=commuter_benefits_transactions,
+    )
