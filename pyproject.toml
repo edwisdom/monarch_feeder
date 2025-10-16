@@ -23,6 +23,7 @@ dependencies = [
     "boto3==1.38.26",
     "google-auth==2.40.2",
     "invoke==2.2.0",
+    "botasaurus>=4.0.0",
 ]
 
 [build-system]

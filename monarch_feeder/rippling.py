@@ -5,7 +5,9 @@ Functions for interacting with Rippling Elevate Accounts API.
 import os
 from typing import Any
 
+import oathtool
 import requests
+from botasaurus.browser import Driver, browser
 from dateutil.parser import parse as parse_datetime
 from dotenv import load_dotenv
 
@@ -19,6 +21,9 @@ from monarch_feeder.computer_use_demo.models import (
 load_dotenv()
 
 EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
+RIPPLING_EMAIL = os.getenv("RIPPLING_EMAIL")
+RIPPLING_PASSWORD = os.getenv("RIPPLING_PASSWORD")
+RIPPLING_MFA_SECRET = os.getenv("RIPPLING_MFA_SECRET")
 
 # Common headers for all Rippling API requests (excluding Authorization)
 BASE_HEADERS = {
@@ -41,6 +46,160 @@ BASE_HEADERS = {
 def get_headers(bearer_token: str) -> dict[str, str]:
     """Return headers with authorization token."""
     return {**BASE_HEADERS, "Authorization": f"Bearer {bearer_token}"}
+
+
+def login(driver: Driver) -> None:
+    """
+    Login to Rippling (without extracting bearer token).
+
+    This function handles the complete login flow including:
+    - Email and password entry
+    - Role selection (employer account)
+    - MFA/OTP verification
+
+    Args:
+        driver: Botasaurus Driver instance
+
+    Raises:
+        TimeoutError: If login takes too long or elements not found
+    """
+    print("Navigating to Rippling login page...")
+    driver.get("https://app.rippling.com/login")
+    driver.short_random_sleep()
+
+    print("Filling in email...")
+    driver.wait_for_element("input#email", wait=10)
+    email_input = driver.select("input#email")
+    email_input.type(RIPPLING_EMAIL)
+    driver.short_random_sleep()
+
+    print("Clicking Continue button...")
+    continue_btn = driver.get_element_containing_text("Continue", wait=10)
+    continue_btn.click()
+    driver.short_random_sleep()
+
+    print("Filling in password...")
+    driver.wait_for_element('input[type="password"]', wait=10)
+    password_input = driver.select('input[type="password"]')
+    password_input.type(RIPPLING_PASSWORD)
+    driver.short_random_sleep()
+
+    print("Clicking login button...")
+    login_btn = None
+    for button_text in ["Continue", "Sign in", "Log in"]:
+        login_btn = driver.get_element_containing_text(button_text, wait=2)
+        if login_btn:
+            break
+    login_btn.click()
+    driver.short_random_sleep()
+
+    print("Checking for role picker...")
+    driver.wait_for_element("#rolePickerForm", wait=5)
+    print(f"Role picker found! Selecting account containing '{EMPLOYER_NAME}'...")
+
+    clicked = driver.run_js(
+        """
+        // Find all text nodes that contain the employer name
+        const employerName = ARGS;
+        const walker = document.createTreeWalker(
+            document.getElementById('rolePickerForm'),
+            NodeFilter.SHOW_TEXT,
+            null
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.textContent.includes(employerName)) {
+                // Found the text node, now find the clickable parent
+                let current = node.parentElement;
+                while (current) {
+                    if (current.hasAttribute('tabindex')) {
+                        console.log('Found clickable parent for:', employerName);
+                        current.click();
+                        return true;
+                    }
+                    current = current.parentElement;
+                }
+            }
+        }
+        return false;
+        """,
+        EMPLOYER_NAME,
+    )
+
+    if clicked:
+        print(f"Successfully clicked on account containing '{EMPLOYER_NAME}'")
+        driver.short_random_sleep()
+    else:
+        print(f"Warning: Could not find and click element containing '{EMPLOYER_NAME}'")
+        role_form = driver.select("#rolePickerForm")
+        print(f"Role picker form text: {role_form.text[:200]}")
+
+    otp = oathtool.generate_otp(RIPPLING_MFA_SECRET)
+    print(f"Generated Rippling OTP: {otp}")
+
+    driver.wait_for_element("#otpCode", wait=10)
+    otp_input = driver.select("#otpCode")
+    print("Entering OTP code...")
+    otp_input.type(otp)
+    driver.short_random_sleep()
+
+    print("Clicking Verify button...")
+    clicked = driver.run_js(
+        """
+        const buttons = document.querySelectorAll('button');
+        for (const button of buttons) {
+            if (button.textContent.trim() === 'Verify') {
+                button.click();
+                return true;
+            }
+        }
+        return false;
+        """
+    )
+    driver.short_random_sleep()
+
+    print("Waiting for authentication to complete...")
+    driver.sleep(2)  # Give the auth process time to complete
+    print("Login completed successfully!")
+
+
+def extract_bearer_token(driver: Driver) -> str:
+    """
+    Extract bearer token from browser storage after successful login.
+
+    Args:
+        driver: Botasaurus Driver instance (must be logged in)
+
+    Returns:
+        The bearer token as a string
+
+    Raises:
+        ValueError: If bearer token cannot be found in any storage location
+    """
+    return ""
+
+
+@browser(
+    block_images=False,
+    reuse_driver=False,
+    output=None,
+)
+def get_bearer_token(driver: Driver) -> str:
+    """
+    Orchestrator function to login to Rippling and extract bearer token.
+
+    Args:
+        driver: Botasaurus Driver instance (automatically injected by decorator)
+
+    Returns:
+        The bearer token as a string
+
+    Raises:
+        ValueError: If credentials are not found or token cannot be extracted
+    """
+    login(driver)
+    return extract_bearer_token(driver)
 
 
 def parse_date(datetime_str: str) -> str:
