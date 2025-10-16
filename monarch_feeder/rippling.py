@@ -539,15 +539,27 @@ class RipplingData:
 
 
 def get_rippling_data() -> RipplingData:
+    """
+    Get Rippling data for HSA and commuter benefits.
+    """
     bearer_token = get_bearer_token()
     hsa_account_id, commuter_benefits_account_id = parse_account_ids(
         fetch_enrollments(bearer_token)
     )
-    hsa_transactions = fetch_all_activities(bearer_token, hsa_account_id)
-    hsa_portfolio = fetch_portfolio(bearer_token, hsa_account_id)
-    commuter_benefits_transactions = fetch_all_activities(
+
+    hsa_activities = fetch_all_activities(bearer_token, hsa_account_id)
+    hsa_transactions = parse_activities_to_hsa_transactions(hsa_activities)
+
+    hsa_portfolio_response = fetch_portfolio(bearer_token, hsa_account_id)
+    hsa_portfolio = parse_portfolio_response(hsa_portfolio_response)
+
+    commuter_benefits_activities = fetch_all_activities(
         bearer_token, commuter_benefits_account_id
     )
+    commuter_benefits_transactions = parse_activities_to_commuter_benefits_transactions(
+        commuter_benefits_activities
+    )
+
     return RipplingData(
         hsa_transactions=hsa_transactions,
         hsa_portfolio=hsa_portfolio,
