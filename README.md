@@ -5,14 +5,14 @@
 When I started a new job, none of my new financial accounts natively synced to Monarch Money. So 
 I decided to build the integrations myself.
 
-Monarch Feeder is an automated financial data synchronization tool that extracts transaction and portfolio data from various financial accounts (Human Interest 401k, Rippling HSA/Commuter Benefits) and syncs it to Monarch Money using AI-powered browser automation.
+Monarch Feeder is an automated financial data synchronization tool that extracts transaction and portfolio data from various financial accounts (Human Interest 401k, Rippling HSA/Commuter Benefits) and syncs it to Monarch Money.
 
 ## 🎯 What It Does
 
-This tool automates the tedious process of manually importing financial data from accounts that don't have direct API access or integrations with personal finance tools. It uses computer vision and AI to:
+This tool automates the tedious process of manually importing financial data from accounts that don't have direct API access or integrations with personal finance tools.
 
 1. **Extract Data**: Automatically log into your financial accounts and scrapes transaction/portfolio data
-2. **Process Data**: Convert extracted data into structured JSON format
+2. **Process Data**: Convert extracted data into a structured format
 3. **Sync to Monarch**: Upload the data to your Monarch Money account with proper categorization
 
 ### Supported Platforms
@@ -25,7 +25,6 @@ This tool automates the tedious process of manually importing financial data fro
 
 ### Prerequisites
 
-- Docker (for automated browser interactions, download [here](https://www.docker.com/))
 - uv (Python package manager, download [here](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer))
 
 ### 1. Clone and Setup
@@ -76,7 +75,7 @@ Then, run this script to create two files:
 2. `monarch_categories.json`: All your Monarch transaction categories -- look for the IDs for categories you want to default to.
 
 ```bash
-python -m monarch_feeder.scripts.get_monarch_accounts
+python -m monarch_feeder.scripts.get_monarch_info
 ```
 
 Find the relevant account IDs and category IDs and update your `.env` file.
@@ -84,14 +83,8 @@ Find the relevant account IDs and category IDs and update your `.env` file.
 ### 6. Run the Complete Workflow
 
 ```bash
-# Build, run all automations, and sync to Monarch
-inv build-run-and-sync
-
-# Or run individual steps:
-inv build                    # Build Docker container
-inv run --automations human_interest,rippling  # Run automations
-inv sync-data               # Sync to Monarch
-```
+# Run all integrations and sync to Monarch
+inv sync
 
 ## 📋 Environment Variables
 
@@ -125,14 +118,9 @@ RIPPLING_EMAIL=your_email@example.com
 RIPPLING_PASSWORD=yourpassword
 ```
 
-### AI Configuration
-```bash
-ANTHROPIC_API_KEY=sk-ant-putyourkeyhere  # For Claude AI automation
-```
-
 ### Other
 ```bash
-EMPLOYER_NAME=your_employer_name # For prompting and account naming
+EMPLOYER_NAME=your_employer_name # For account naming
 ```
 
 ## 🛠️ Available Commands
@@ -142,23 +130,16 @@ The project uses [Invoke](https://pyinvoke.org/) for task management.
 ### Core Automation Commands
 
 ```bash
-# Build the Docker automation container
-inv build
+# List available integrations
+inv list-integrations
 
-# List available automations
-inv list-automations
+# Run specific platform integrations
+inv sync --platforms=human_interest
+inv sync --platforms=rippling
+inv sync --platforms=human_interest,rippling
 
-# Run specific automations
-inv run --automations human_interest
-inv run --automations rippling
-inv run --automations human_interest,rippling
-
-# Sync extracted data to Monarch Money
-inv sync-data
-inv sync-data --dry-run  # Preview what would be synced
-
-# Complete workflow (build + run + sync)
-inv build-run-and-sync
+# Preview what would be synced
+inv sync --dry-run
 ```
 
 ### Debugging Utilities
@@ -168,54 +149,36 @@ inv build-run-and-sync
 python -m monarch_feeder.scripts.test_otp
 ```
 
-## 📁 Output Structure
-
-Automation outputs are saved in structured directories:
-
-```
-automation_outputs/
-├── human_interest/
-│   ├── transactions/
-│   │   └── human_interest_transactions_{yyyymmdd}_{hhmmss}.json
-│   └── portfolio/
-│       └── human_interest_portfolio_{yyyymmdd}_{hhmmss}.json
-└── rippling/
-    ├── hsa_transactions/
-    │   └── rippling_hsa_transactions_{yyyymmdd}_{hhmmss}.json
-    ├── hsa_portfolio/
-    │   └── rippling_hsa_portfolio_{yyyymmdd}_{hhmmss}.json
-    └── commuter_benefits/
-        └── rippling_commuter_benefits_{yyyymmdd}_{hhmmss}.json
-```
-
 ## 🔧 How It Works
 
-### 1. Browser Automation
-The system uses Docker containers with desktop environments to run automated browsers. Claude AI analyzes screenshots and performs actions like:
-- Navigating web pages
-- Logging into accounts
-- Extracting transaction data
-- Downloading portfolio information
+### 1. Authentication via Browser Automation
+The system uses [Botasaurus](https://github.com/omkarcloud/botasaurus) to automate real browsers for authentication:
+- Navigates to login pages
+- Fills in credentials and handles MFA/OTP codes
+- Extracts session tokens and cookies from the authenticated browser session
 
-### 2. Data Processing
-Extracted data is structured into JSON format with standardized schemas for:
-- **Transactions**: Date, amount, description, counterparty
-- **Portfolio Holdings**: Stock ticker, shares, market value
+### 2. Direct API Scraping
+Once authenticated, the system makes direct HTTP requests to the platforms' internal APIs:
+- **Human Interest**: GraphQL API calls to fetch transaction history and portfolio allocations
+- **Rippling**: REST API calls to retrieve HSA activities, holdings, and commuter benefit transactions
+- All data is returned as structured JSON from the platforms' production APIs
 
-### 3. Monarch Integration
-Using the `monarchmoney` Python library, the system:
-- Authenticates with your Monarch account
-- Creates new transactions with proper categorization
+### 3. Data Processing
+Raw API responses are parsed into standardized data models:
+- **Transactions**: Date, amount, description, counterparty account
+- **Portfolio Holdings**: Stock ticker symbol, number of shares
+
+### 4. Monarch Integration
+Using the [`monarchmoney`](https://github.com/hammem/monarchmoney) Python library, the system:
+- Authenticates with your Monarch Money account
+- Compares scraped transactions against existing Monarch data to avoid duplicates
+- Creates new transactions with proper categorization and account assignment
 - Updates portfolio holdings for investment accounts
 
 ## 🔐 Security Considerations
 
 - **Credentials**: Store all sensitive credentials in `.env` file (never commit to version control)
 - **MFA Secrets**: TOTP secrets are extracted locally and stored securely
-- **Data Storage**: Financial data is stored locally in JSON format
-- **Network**: Automation runs in isolated Docker containers
-
-**IMPORTANT**: You are letting an LLM interact with your financial accounts, which has some inherent risk.
 
 ## 🐛 Troubleshooting
 
@@ -225,17 +188,12 @@ Using the `monarchmoney` Python library, the system:
    - Ensure QR codes are clear and properly saved in `.auth/` directory
    - Test TOTP generation: `python -m monarch_feeder.scripts.test_otp`
 
-2. **Docker Issues**:
-   - Ensure Docker is running and you have permissions
-   - Clean containers: `inv clean`
-
-3. **Account ID Issues**:
+2. **Account ID Issues**:
    - Re-run: `python -m monarch_feeder.scripts.get_monarch_accounts`
    - Verify account IDs in your `.env` file match the JSON output
 
 ### Logs and Debugging
 
-- Automation logs: Check Docker container output
 - Data validation: Use `--dry-run` flag to preview changes before syncing
 
 ## 🤝 Contributing
