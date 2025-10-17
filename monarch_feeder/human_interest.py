@@ -195,7 +195,7 @@ def fetch_recent_activity(
 
 def fetch_all_recent_activity(
     session: HumanInterestSession,
-    max_transactions: int = 100,
+    max_transactions: int = 30,
 ) -> dict[str, Any]:
     """
     Fetch all recent activity from Human Interest using pagination.
@@ -424,9 +424,20 @@ def parse_portfolio_response(response_data: dict[str, Any]) -> Portfolio:
     return Portfolio(holdings=holdings)
 
 
-if __name__ == "__main__":
+@dataclass
+class HumanInterestData:
+    transactions: TransactionLog
+    portfolio: Portfolio
+
+
+def get_human_interest_data() -> HumanInterestData:
+    """
+    Get Human Interest data for transactions and portfolio.
+    """
     session = get_session()
     recent_activity = fetch_all_recent_activity(session)
     transactions = parse_activity_to_transaction_log(recent_activity)
     portfolio_response = fetch_portfolio(session)
     portfolio = parse_portfolio_response(portfolio_response)
+
+    return HumanInterestData(transactions=transactions, portfolio=portfolio)
