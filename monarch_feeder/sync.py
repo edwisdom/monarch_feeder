@@ -1,185 +1,125 @@
-import os
-import re
-from dataclasses import dataclass
-from datetime import datetime
-from enum import Enum
-from pathlib import Path
+"""Sync financial data from external platforms to Monarch Money."""
 
 from monarchmoney import MonarchMoney
 
-from monarch_feeder.computer_use_demo.automation_orchestrator import (
-    DEFAULT_OUTPUT_DIR,
-    AutomationType,
+from monarch_feeder.computer_use_demo.models import Portfolio, TransactionLog
+from monarch_feeder.integration_types import (
+    DataStream,
+    Integration,
+    Platform,
+    StreamType,
 )
-from monarch_feeder.computer_use_demo.models import (
-    Portfolio,
-    TransactionLog,
-    get_transaction_log_diff,
-)
+from monarch_feeder.integrations import INTEGRATIONS
 from monarch_feeder.monarch import (
     add_transaction_to_account,
+    get_transactions_for_account,
     login,
     update_account_holdings,
 )
 
 
-class SyncType(Enum):
-    TRANSACTIONS = "transactions"
-    PORTFOLIO = "portfolio"
-
-
-@dataclass
-class SyncConfig:
-    name: str
-    type: SyncType
-    automation_type: AutomationType
-    subtask_name: str
-    account_id: str
-    category_id: str | None = None
-    update_balance: bool = False
-
-    def get_pattern(self) -> str:
-        return f"{DEFAULT_OUTPUT_DIR}/{self.automation_type.value}/{self.subtask_name}/*.json"
-
-
-SYNC_CONFIGS = [
-    SyncConfig(
-        name="Human Interest Transactions",
-        type=SyncType.TRANSACTIONS,
-        automation_type=AutomationType.HUMAN_INTEREST,
-        subtask_name="transactions",
-        account_id=os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID"),
-        category_id=os.getenv("MONARCH_HUMAN_INTEREST_CATEGORY_ID"),
-        update_balance=False,
-    ),
-    SyncConfig(
-        name="Human Interest Portfolio",
-        type=SyncType.PORTFOLIO,
-        automation_type=AutomationType.HUMAN_INTEREST,
-        subtask_name="portfolio",
-        account_id=os.getenv("MONARCH_HUMAN_INTEREST_ACCOUNT_ID"),
-        update_balance=False,
-    ),
-    SyncConfig(
-        name="Rippling HSA Transactions",
-        type=SyncType.TRANSACTIONS,
-        automation_type=AutomationType.RIPPLING,
-        subtask_name="hsa_transactions",
-        account_id=os.getenv("MONARCH_ELEVATE_UMB_ACCOUNT_ID"),
-        category_id=os.getenv("MONARCH_ELEVATE_UMB_CATEGORY_ID"),
-        update_balance=False,
-    ),
-    SyncConfig(
-        name="Rippling HSA Portfolio",
-        type=SyncType.PORTFOLIO,
-        automation_type=AutomationType.RIPPLING,
-        subtask_name="hsa_portfolio",
-        account_id=os.getenv("MONARCH_ELEVATE_UMB_ACCOUNT_ID"),
-        update_balance=False,
-    ),
-    SyncConfig(
-        name="Rippling Commuter Benefits",
-        type=SyncType.TRANSACTIONS,
-        automation_type=AutomationType.RIPPLING,
-        subtask_name="commuter_benefits",
-        account_id=os.getenv("MONARCH_RIPPLING_COMMUTER_ACCOUNT_ID"),
-        category_id=os.getenv("MONARCH_RIPPLING_COMMUTER_CATEGORY_ID"),
-        update_balance=True,
-    ),
-]
-
-
-def extract_datetime_from_filename(filepath: str) -> datetime:
-    """Extract datetime from filename with format ..._{yyyymmdd}_{hhmmss}.json"""
-    filename = Path(filepath).name
-    # Match the pattern _{yyyymmdd}_{hhmmss}.json at the end of filename
-    match = re.search(r"_(\d{8})_(\d{6})\.json$", filename)
-
-    # Fallback to modification time if pattern doesn't match
-    if not match:
-        return datetime.fromtimestamp(os.path.getmtime(filepath))
-
-    date_str, time_str = match.groups()
-    return datetime.strptime(f"{date_str}_{time_str}", "%Y%m%d_%H%M%S")
-
-
-def get_latest_files(pattern: str, n: int) -> list[Path]:
-    """Get the n most recent files matching the pattern based on filename datetime."""
-    pattern_path = Path(pattern)
-    parent_dir = pattern_path.parent
-    file_pattern = pattern_path.name
-
-    return sorted(
-        parent_dir.glob(file_pattern),
-        key=lambda p: extract_datetime_from_filename(str(p)),
-        reverse=True,
-    )[:n]
-
-
-async def sync_transactions_to_monarch(
-    mm: MonarchMoney, config: SyncConfig, dry_run: bool = False
+async def _sync_transactions(
+    mm: MonarchMoney,
+    stream: DataStream,
+    transactions: TransactionLog,
+    dry_run: bool,
 ) -> None:
-    """Sync transactions to Monarch Money."""
-    pattern = config.get_pattern()
-    files = get_latest_files(pattern, 2)
+    """Sync transactions by comparing scraped data with Monarch data."""
+    monarch_transactions = await get_transactions_for_account(
+        mm, stream.account_id, stream.account_name
+    )
+    new_transactions = transactions - monarch_transactions
 
-    if not files:
-        raise ValueError(f"No files found for {config.name} at {pattern}")
+    if not new_transactions.transactions:
+        print(f"  ✓ {stream.name}: No new transactions")
+        return
 
-    new_log = TransactionLog.from_json_file(files[0])
-    old_log = TransactionLog.from_json_file(files[1]) if len(files) > 1 else []
-    diff_log = get_transaction_log_diff(new_log, old_log)
-
-    for transaction in diff_log.transactions:
+    for txn in new_transactions.transactions:
         if dry_run:
             print(
-                f"🔍 Would add: {transaction.date} - {transaction.counterparty_account} - ${transaction.amount}"
+                f"    🔍 Would add: {txn.date} | {txn.counterparty_account} | ${txn.amount:.2f}"
             )
         else:
             success = await add_transaction_to_account(
-                mm,
-                transaction,
-                config.account_id,
-                config.category_id,
-                update_balance=config.update_balance,
+                mm, txn, stream.account_id, stream.category_id, stream.update_balance
             )
-            if not success:
-                print(
-                    f"❌ Failed to add: {transaction.date} - {transaction.counterparty_account}"
-                )
+            status = "✓" if success else "❌"
+            print(
+                f"    {status} {txn.date} | {txn.counterparty_account} | ${txn.amount:.2f}"
+            )
 
 
-async def sync_portfolio_to_monarch(
-    mm: MonarchMoney, config: SyncConfig, dry_run: bool = False
+async def _sync_portfolio(
+    mm: MonarchMoney,
+    stream: DataStream,
+    portfolio: Portfolio,
+    dry_run: bool,
 ) -> None:
-    """Sync portfolio to Monarch Money."""
-    pattern = config.get_pattern()
-    files = get_latest_files(pattern, 1)
-
-    if not files:
-        raise ValueError(f"No files found for {config.name} at {pattern}")
-
-    portfolio = Portfolio.from_json_file(files[0])
-
+    """Sync portfolio holdings."""
     if dry_run:
-        print(f"🔍 Would sync portfolio with {len(portfolio.holdings)} holdings:")
+        print(f"  🔍 {stream.name}: Would sync {len(portfolio.holdings)} holding(s)")
         for holding in portfolio.holdings:
-            print(f"   - {holding.stock_ticker}: {holding.shares} shares")
+            print(f"    - {holding.stock_ticker}: {holding.shares:.4f} shares")
     else:
-        success = await update_account_holdings(mm, config.account_id, portfolio)
-        if not success:
-            print(f"❌ Failed to sync portfolio for {config.name}")
+        success = await update_account_holdings(mm, stream.account_id, portfolio)
+        if success:
+            print(f"  ✓ {stream.name}: Updated {len(portfolio.holdings)} holding(s)")
+        else:
+            print(f"  ❌ {stream.name}: Failed to sync")
 
 
-async def sync_data_to_monarch(dry_run: bool = False) -> None:
-    """Sync data to Monarch Money."""
+async def _sync_stream(
+    mm: MonarchMoney,
+    stream: DataStream,
+    data: TransactionLog | Portfolio,
+    dry_run: bool,
+) -> None:
+    """Route data to appropriate sync handler based on stream type."""
+    match stream.stream_type:
+        case StreamType.TRANSACTIONS:
+            await _sync_transactions(mm, stream, data, dry_run)
+        case StreamType.PORTFOLIO:
+            await _sync_portfolio(mm, stream, data, dry_run)
+
+
+async def sync_integration(
+    mm: MonarchMoney,
+    integration: Integration,
+    dry_run: bool = False,
+) -> None:
+    """Sync all data streams for a single integration.
+
+    Fetches platform data once and feeds it to all configured streams.
+    """
+    print(f"\n🔄 {integration.name}")
+
+    try:
+        data = integration.data_fetcher()
+        for stream in integration.data_streams:
+            try:
+                extracted_data = stream.extractor(data)
+                await _sync_stream(mm, stream, extracted_data, dry_run)
+            except Exception as e:
+                print(f"  ❌ {stream.name}: {type(e).__name__}: {e}")
+
+    except Exception as e:
+        print(f"  ❌ Failed to fetch data: {type(e).__name__}: {e}")
+
+
+async def sync_all(
+    platforms: list[Platform],
+    dry_run: bool = False,
+) -> None:
+    """Sync data from financial platforms to Monarch Money.
+
+    Args:
+        platforms: List of platforms to sync
+        dry_run: If True, only show what would be synced without making changes
+    """
     mm = await login()
 
-    for config in SYNC_CONFIGS:
-        match config.type:
-            case SyncType.TRANSACTIONS:
-                await sync_transactions_to_monarch(mm, config, dry_run)
-            case SyncType.PORTFOLIO:
-                await sync_portfolio_to_monarch(mm, config, dry_run)
+    for platform in platforms:
+        integration = INTEGRATIONS[platform]
+        await sync_integration(mm, integration, dry_run)
 
-    print("✅ Sync complete")
+    print(f"\n{'✓ Dry run complete' if dry_run else '✓ Sync complete'}")
