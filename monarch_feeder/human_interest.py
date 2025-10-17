@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import requests
+from botasaurus.browser import Driver, browser
 from dotenv import load_dotenv
 
 from monarch_feeder.computer_use_demo.models import (
@@ -36,6 +37,27 @@ class HumanInterestSession:
     context_id: str = field(
         default="", description="The x-hi-context-id header value (account context)"
     )
+
+
+def login(driver: Driver) -> None:
+    """Login to Human Interest."""
+    pass
+
+
+def extract_session_context(driver: Driver) -> HumanInterestSession:
+    """Extract session context from driver."""
+    pass
+
+
+@browser(
+    block_images=False,
+    reuse_driver=False,
+    output=None,
+)
+def get_session(driver: Driver, data: dict[str, Any] = None) -> HumanInterestSession:
+    """Get session from driver."""
+    login(driver)
+    return extract_session_context(driver)
 
 
 def fetch_recent_activity(
@@ -328,3 +350,11 @@ def parse_portfolio_response(response_data: dict[str, Any]) -> Portfolio:
             )
 
     return Portfolio(holdings=holdings)
+
+
+if __name__ == "__main__":
+    session = get_session()
+    recent_activity = fetch_all_recent_activity(session)
+    transactions = parse_activity_to_transaction_log(recent_activity)
+    portfolio_response = fetch_portfolio(session)
+    portfolio = parse_portfolio_response(portfolio_response)
