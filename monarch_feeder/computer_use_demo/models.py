@@ -71,6 +71,26 @@ class TransactionLog(BaseModel):
         """Return the number of transactions in the log."""
         return len(self.transactions)
 
+    def __sub__(self, other: "TransactionLog") -> "TransactionLog":
+        """
+        Subtract two transaction logs to get the diff.
+
+        Returns transactions in self that aren't in other, filtered to only
+        include transactions dated at or after the earliest date in other.
+        """
+        if not other.transactions:
+            return self
+
+        earliest_date = min(txn.date for txn in other.transactions)
+
+        old_transactions_set = set(other.transactions)
+        new_transactions = [
+            txn
+            for txn in self.transactions
+            if txn not in old_transactions_set and txn.date >= earliest_date
+        ]
+        return TransactionLog(transactions=new_transactions)
+
 
 class Holding(BaseModel):
     """Individual portfolio holding with stock ticker and share count."""
@@ -167,52 +187,3 @@ class Portfolio(BaseModel):
     def __len__(self) -> int:
         """Return the number of holdings in the portfolio."""
         return len(self.holdings)
-
-
-def get_transaction_log_diff(
-    new_log: TransactionLog, old_log: TransactionLog
-) -> TransactionLog:
-    """Reconcile two lists of transactions.
-
-    Returns transactions that are in new_log but not in old_log.
-    Groups by (date, amount) and compares counts.
-
-    Note that this doesn't handle the edge case where the new logs have
-    more transactions of a certain amount on a given date than the old log.
-    In that case, we'd need to use some kind of matching algorithm (e.g. an LLM)
-    to determine which transactions are new and which are old. This seems
-    unnecessary in 99.99% of cases for this application, so it hasn't been implemented.
-    """
-    if len(new_log) == 0:
-        return []
-
-    if len(old_log) == 0:
-        return new_log
-
-    # Group transactions by (date, amount)
-    new_groups = defaultdict(list)
-    old_groups = defaultdict(list)
-
-    for transaction in new_log.transactions:
-        key = (transaction.date, transaction.amount)
-        new_groups[key].append(transaction)
-
-    for transaction in old_log.transactions:
-        key = (transaction.date, transaction.amount)
-        old_groups[key].append(transaction)
-
-    new_transactions = []
-
-    # For each (date, amount) group in new_log
-    for key, new_group in new_groups.items():
-        old_group = old_groups.get(key, [])
-
-        new_count = len(new_group)
-        old_count = len(old_group)
-
-        if new_count > old_count:
-            # Add the excess transactions as new
-            excess_count = new_count - old_count
-            new_transactions.extend(new_group[:excess_count])
-
-    return TransactionLog(transactions=new_transactions)
