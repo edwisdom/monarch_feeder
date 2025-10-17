@@ -3,6 +3,7 @@ Functions for interacting with Human Interest GraphQL API.
 """
 
 import os
+from dataclasses import dataclass, field
 from typing import Any
 
 import requests
@@ -20,11 +21,25 @@ load_dotenv()
 EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
 
 
+@dataclass
+class HumanInterestSession:
+    auth_sid: str = field(
+        default="",
+        description="The connect.auth.sid cookie value (session authentication)",
+    )
+    connect_sid: str = field(
+        default="", description="The connect.sid cookie value (session identifier)"
+    )
+    company_id: str = field(
+        default="", description="The x-hi-company-id header value (company identifier)"
+    )
+    context_id: str = field(
+        default="", description="The x-hi-context-id header value (account context)"
+    )
+
+
 def fetch_recent_activity(
-    auth_sid: str,
-    connect_sid: str,
-    company_id: str,
-    context_id: str,
+    session: HumanInterestSession,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -32,10 +47,7 @@ def fetch_recent_activity(
     Send a GraphQL request to fetch recent activity from Human Interest.
 
     Args:
-        auth_sid: The connect.auth.sid cookie value (session authentication)
-        connect_sid: The connect.sid cookie value (session identifier)
-        company_id: The x-hi-company-id header value (company identifier)
-        context_id: The x-hi-context-id header value (account context)
+        session: The Human Interest session
         limit: Number of activity items to fetch per page (default: 20, max: 20)
         offset: Number of items to skip (for pagination)
 
@@ -70,15 +82,15 @@ def fetch_recent_activity(
         "Origin": "https://app.humaninterest.com",
         "Referer": "https://app.humaninterest.com/",
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-        "x-hi-company-id": company_id,
-        "x-hi-context-id": context_id,
+        "x-hi-company-id": session.company_id,
+        "x-hi-context-id": session.context_id,
         "x-hi-context-type": "participant",
     }
 
     # Build cookie string
     cookies = {
-        "connect.auth.sid": auth_sid,
-        "connect.sid": connect_sid,
+        "connect.auth.sid": session.auth_sid,
+        "connect.sid": session.connect_sid,
     }
 
     response = requests.post(api_url, json=payload, headers=headers, cookies=cookies)
@@ -88,20 +100,14 @@ def fetch_recent_activity(
 
 
 def fetch_all_recent_activity(
-    auth_sid: str,
-    connect_sid: str,
-    company_id: str,
-    context_id: str,
+    session: HumanInterestSession,
     max_transactions: int = 100,
 ) -> dict[str, Any]:
     """
     Fetch all recent activity from Human Interest using pagination.
 
     Args:
-        auth_sid: The connect.auth.sid cookie value (session authentication)
-        connect_sid: The connect.sid cookie value (session identifier)
-        company_id: The x-hi-company-id header value (company identifier)
-        context_id: The x-hi-context-id header value (account context)
+        session: The Human Interest session
         max_transactions: Maximum number of transactions to fetch across all pages
 
     Returns:
@@ -116,10 +122,7 @@ def fetch_all_recent_activity(
 
     while offset < max_transactions:
         response = fetch_recent_activity(
-            auth_sid=auth_sid,
-            connect_sid=connect_sid,
-            company_id=company_id,
-            context_id=context_id,
+            session=session,
             limit=page_size,
             offset=offset,
         )
@@ -211,19 +214,13 @@ def parse_activity_to_transaction_log(response_data: dict[str, Any]) -> Transact
 
 
 def fetch_portfolio(
-    auth_sid: str,
-    connect_sid: str,
-    company_id: str,
-    context_id: str,
+    session: HumanInterestSession,
 ) -> dict[str, Any]:
     """
     Send a GraphQL request to fetch portfolio from Human Interest.
 
     Args:
-        auth_sid: The connect.auth.sid cookie value (session authentication)
-        connect_sid: The connect.sid cookie value (session identifier)
-        company_id: The x-hi-company-id header value (company identifier)
-        context_id: The x-hi-context-id header value (account context)
+        session: The Human Interest session
 
     Returns:
         The JSON response from the API
@@ -263,15 +260,15 @@ def fetch_portfolio(
         "Origin": "https://app.humaninterest.com",
         "Referer": "https://app.humaninterest.com/",
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-        "x-hi-company-id": company_id,
-        "x-hi-context-id": context_id,
+        "x-hi-company-id": session.company_id,
+        "x-hi-context-id": session.context_id,
         "x-hi-context-type": "participant",
     }
 
     # Build cookie string
     cookies = {
-        "connect.auth.sid": auth_sid,
-        "connect.sid": connect_sid,
+        "connect.auth.sid": session.auth_sid,
+        "connect.sid": session.connect_sid,
     }
 
     response = requests.post(api_url, json=payload, headers=headers, cookies=cookies)
