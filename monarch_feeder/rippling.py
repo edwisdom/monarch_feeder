@@ -349,7 +349,7 @@ def fetch_activities(
 def fetch_all_activities(
     bearer_token: str,
     account_id: str,
-    max_transactions: int = 100,
+    max_transactions: int = 30,
     page_size: int = 10,
     has_active_hold: bool = False,
 ) -> dict[str, Any]:
