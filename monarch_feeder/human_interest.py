@@ -20,28 +20,57 @@ from monarch_feeder.computer_use_demo.models import (
 load_dotenv()
 
 EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
+HUMAN_INTEREST_EMAIL = os.getenv("HUMAN_INTEREST_EMAIL")
+HUMAN_INTEREST_PASSWORD = os.getenv("HUMAN_INTEREST_PASSWORD")
 
 
 @dataclass
 class HumanInterestSession:
     auth_sid: str = field(
         default="",
-        description="The connect.auth.sid cookie value (session authentication)",
+        doc="The connect.auth.sid cookie value (session authentication)",
     )
     connect_sid: str = field(
-        default="", description="The connect.sid cookie value (session identifier)"
+        default="", doc="The connect.sid cookie value (session identifier)"
     )
     company_id: str = field(
-        default="", description="The x-hi-company-id header value (company identifier)"
+        default="", doc="The x-hi-company-id header value (company identifier)"
     )
     context_id: str = field(
-        default="", description="The x-hi-context-id header value (account context)"
+        default="", doc="The x-hi-context-id header value (account context)"
     )
 
 
 def login(driver: Driver) -> None:
     """Login to Human Interest."""
-    pass
+
+    print("Navigating to Human Interest login page...")
+    driver.get("https://app.humaninterest.com/login")
+    driver.short_random_sleep()
+
+    print("Filling in email...")
+    driver.wait_for_element("input#username", wait=10)
+    email_input = driver.select("input#username")
+    email_input.type(HUMAN_INTEREST_EMAIL)
+    driver.short_random_sleep()
+
+    print("Clicking next button...")
+    next_button = driver.select("button[data-testid='btn-login-email-submit']")
+    next_button.click()
+    driver.short_random_sleep()
+
+    print("Filling in password...")
+    driver.wait_for_element("input[data-testid='input-login-password']", wait=10)
+    password_input = driver.select("input[data-testid='input-login-password']")
+    password_input.type(HUMAN_INTEREST_PASSWORD)
+    driver.short_random_sleep()
+
+    print("Clicking login button...")
+    login_button = driver.select("button[data-testid='btn-login-with-password']")
+    login_button.click()
+    driver.short_random_sleep()
+
+    print("Login completed successfully!")
 
 
 def extract_session_context(driver: Driver) -> HumanInterestSession:
