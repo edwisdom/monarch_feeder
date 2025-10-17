@@ -75,7 +75,50 @@ def login(driver: Driver) -> None:
 
 def extract_session_context(driver: Driver) -> HumanInterestSession:
     """Extract session context from driver."""
-    pass
+    local_storage: dict[str, str] = driver.run_js(
+        """
+        const storage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            storage[key] = localStorage.getItem(key);
+        }
+        return storage;
+    """
+    )
+
+    auth_sid, connect_sid, company_id, context_id = None, None, None, None
+    for key, value in local_storage.items():
+        KEY_PREFIX = "hi_ppt_selected_division_"
+        if key.startswith(KEY_PREFIX):
+            context_id = key.split(KEY_PREFIX)[1]
+            company_id = value
+            break
+    else:
+        raise ValueError("Context ID and company ID not found in local storage.")
+
+    cookies = driver.get_cookies()
+    for cookie in cookies:
+        if cookie.get("name") == "connect.auth.sid":
+            auth_sid = cookie.get("value")
+        elif cookie.get(
+            "name"
+        ) == "connect.sid" and "router.humaninterest.com" in cookie.get("domain", ""):
+            connect_sid = cookie.get("value")
+
+    if not auth_sid:
+        raise ValueError("connect.auth.sid cookie not found.")
+
+    if not connect_sid:
+        raise ValueError(
+            "connect.sid cookie with domain router.humaninterest.com not found."
+        )
+
+    return HumanInterestSession(
+        auth_sid=auth_sid,
+        connect_sid=connect_sid,
+        company_id=company_id,
+        context_id=context_id,
+    )
 
 
 @browser(
