@@ -71,7 +71,7 @@ async def login() -> MonarchMoney:
 
 
 async def get_transactions_for_account(
-    mm: MonarchMoney, account_id: str, num_days: int = 60
+    mm: MonarchMoney, account_id: str, account_name: str, num_days: int = 60
 ) -> TransactionLog:
     """
     Get transactions for a specific account.
@@ -79,6 +79,7 @@ async def get_transactions_for_account(
     Args:
         mm: MonarchMoney instance
         account_id: The account ID to get transactions for
+        account_name: The standardized account name to use for transactions
 
     Returns:
         List of transaction dictionaries
@@ -96,12 +97,9 @@ async def get_transactions_for_account(
         """
         # Extract basic transaction data
         counterparty_account = transaction.get("merchant", {}).get("name", "Unknown")
-        user_account = transaction.get("account", {}).get(
-            "displayName", "Unknown Account"
-        )
         return Transaction(
             date=transaction["date"],
-            user_account=user_account,
+            user_account=account_name,
             counterparty_account=counterparty_account,
             amount=transaction["amount"],
         )
