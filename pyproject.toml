@@ -3,7 +3,7 @@ name = "monarch-feeder"
 version = "0.1.0"
 description = "This project feeds financial data from various sources to Monarch Money."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "pandas==2.2.3",
     # "monarchmoney==0.1.15", # TODO: Remove once they accept my PR lol
@@ -15,11 +15,8 @@ dependencies = [
     "pyzbar==0.1.9",
     "Pillow==11.2.1",
     "protobuf==3.20.0",
-    "anthropic==0.48.0",
-    "instructor[anthropic]==1.8.3",
     "httpx==0.28.1",
-    "pydantic==2.11.5",
-    "streamlit==1.45.1",
+    "pydantic==2.12.2",
     "boto3==1.38.26",
     "google-auth==2.40.2",
     "invoke==2.2.0",
