@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Generic, TypeVar
 
-from monarch_feeder.computer_use_demo.models import Portfolio, TransactionLog
+from monarch_feeder.financial_models import Portfolio, TransactionLog
 
 # Type variable for platform-specific data
 T = TypeVar("T")

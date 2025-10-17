@@ -12,7 +12,7 @@ from botasaurus.browser import Driver, browser
 from dateutil.parser import parse as parse_datetime
 from dotenv import load_dotenv
 
-from monarch_feeder.computer_use_demo.models import (
+from monarch_feeder.financial_models import (
     Holding,
     Portfolio,
     Transaction,

@@ -7,7 +7,7 @@ import pyotp
 from dotenv import load_dotenv
 from monarchmoney import MonarchMoney
 
-from monarch_feeder.computer_use_demo.models import (
+from monarch_feeder.financial_models import (
     Holding,
     Portfolio,
     Transaction,

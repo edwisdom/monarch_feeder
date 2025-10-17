@@ -5,7 +5,7 @@ This module is self-contained and doesn't depend on the larger monarch_feeder pa
 
 import datetime
 import json
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from pathlib import Path
 
 from pydantic import BaseModel, field_validator

@@ -2,7 +2,7 @@
 
 from monarchmoney import MonarchMoney
 
-from monarch_feeder.computer_use_demo.models import Portfolio, TransactionLog
+from monarch_feeder.financial_models import Portfolio, TransactionLog
 from monarch_feeder.integration_types import (
     DataStream,
     Integration,
