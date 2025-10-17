@@ -37,6 +37,12 @@ class Transaction(BaseModel):
             (self.date, self.user_account, self.counterparty_account, self.amount)
         )
 
+    def __lt__(self, other):
+        """Enable sorting of transactions chronologically by date."""
+        if not isinstance(other, Transaction):
+            return NotImplemented
+        return self.date < other.date
+
 
 class TransactionLog(BaseModel):
     """Log of transactions."""
