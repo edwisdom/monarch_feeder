@@ -19,7 +19,6 @@ from monarch_feeder.computer_use_demo.models import (
 
 load_dotenv()
 
-EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
 HUMAN_INTEREST_EMAIL = os.getenv("HUMAN_INTEREST_EMAIL")
 HUMAN_INTEREST_PASSWORD = os.getenv("HUMAN_INTEREST_PASSWORD")
 
@@ -237,12 +236,15 @@ def fetch_all_recent_activity(
     return {"data": {"personActivityFeed": all_activities}}
 
 
-def parse_activity_to_transaction_log(response_data: dict[str, Any]) -> TransactionLog:
+def parse_activity_to_transaction_log(
+    response_data: dict[str, Any], account_name: str
+) -> TransactionLog:
     """
     Parse Human Interest activity feed response into a TransactionLog.
 
     Args:
         response_data: The JSON response from the recentActivity GraphQL query
+        account_name: The account name to use for transactions
 
     Returns:
         A TransactionLog containing all transactions from the activity feed
@@ -251,14 +253,14 @@ def parse_activity_to_transaction_log(response_data: dict[str, Any]) -> Transact
         - Each transaction is mapped as follows:
           * date: The activity item's date field
           * amount: The transaction's amount field (as float)
-          * user_account: The fund symbol (e.g., "VTIAX")
+          * user_account: The provided account_name parameter
           * counterparty_account: The transaction source (e.g., "Employee Deferral")
         - Activity items without transactions are skipped
         - Negative amounts (like fees) are preserved as negative
     """
     transactions = []
     action_type_to_counterparty_and_key = {
-        "human_interest_advisory_fee": ("Advisory Fee", "employeeTotal"),
+        "human_interest_advisory_fee": ("Asset Fees", "employeeTotal"),
         "dividend": ("Dividend", "total"),
         "rollover": ("Rollover", "total"),
     }
@@ -286,7 +288,7 @@ def parse_activity_to_transaction_log(response_data: dict[str, Any]) -> Transact
                     transactions.append(
                         Transaction(
                             date=activity_item["date"],
-                            user_account=f"Human Interest - {EMPLOYER_NAME} 401k",
+                            user_account=account_name,
                             counterparty_account=label,
                             amount=activity_item[key],
                         )
@@ -298,7 +300,7 @@ def parse_activity_to_transaction_log(response_data: dict[str, Any]) -> Transact
             transactions.append(
                 Transaction(
                     date=activity_item["date"],
-                    user_account=f"Human Interest - {EMPLOYER_NAME} 401k",
+                    user_account=account_name,
                     counterparty_account=counterparty,
                     amount=activity_item[key],
                 )
@@ -430,13 +432,16 @@ class HumanInterestData:
     portfolio: Portfolio
 
 
-def get_human_interest_data() -> HumanInterestData:
+def get_human_interest_data(account_name: str) -> HumanInterestData:
     """
     Get Human Interest data for transactions and portfolio.
+
+    Args:
+        account_name: The account name to use for transactions
     """
     session = get_session()
     recent_activity = fetch_all_recent_activity(session)
-    transactions = parse_activity_to_transaction_log(recent_activity)
+    transactions = parse_activity_to_transaction_log(recent_activity, account_name)
     portfolio_response = fetch_portfolio(session)
     portfolio = parse_portfolio_response(portfolio_response)
 

@@ -399,14 +399,14 @@ def fetch_all_activities(
 
 
 def parse_activities_to_hsa_transactions(
-    response_data: dict[str, Any],
+    response_data: dict[str, Any], account_name: str
 ) -> TransactionLog:
     """
     Parse Rippling Elevate Accounts activities response into a TransactionLog.
 
     Args:
         response_data: The JSON response from the activities API
-        account_name: Optional custom account name (defaults to "Rippling - {EMPLOYER_NAME} HSA")
+        account_name: The account name to use for transactions
 
     Returns:
         A TransactionLog containing all transactions from the activities
@@ -415,7 +415,7 @@ def parse_activities_to_hsa_transactions(
         - Each transaction is mapped as follows:
           * date: The status_date field (ISO format, converted to date)
           * amount: The transaction's amount field (as float)
-          * user_account: The account name (e.g., "Rippling - {EMPLOYER_NAME} HSA")
+          * user_account: The provided account_name parameter
           * counterparty_account: Based on transaction_type and metadata
         - Transactions with status other than "Complete" are skipped
         - Transaction types are mapped to descriptive counterparty accounts
@@ -441,7 +441,7 @@ def parse_activities_to_hsa_transactions(
         transactions.append(
             Transaction(
                 date=parse_date(activity.get("status_date")),
-                user_account=f"Rippling - {EMPLOYER_NAME} HSA",
+                user_account=account_name,
                 counterparty_account=counterparty,
                 amount=amount,
             )
@@ -510,10 +510,14 @@ def parse_portfolio_response(response_data: dict[str, Any]) -> Portfolio:
 
 
 def parse_activities_to_commuter_benefits_transactions(
-    response_data: dict[str, Any],
+    response_data: dict[str, Any], account_name: str
 ) -> TransactionLog:
     """
     Parse Rippling Elevate Accounts activities response into a TransactionLog.
+
+    Args:
+        response_data: The JSON response from the activities API
+        account_name: The account name to use for transactions
     """
     transactions = []
     content = response_data.get("content", [])
@@ -522,7 +526,7 @@ def parse_activities_to_commuter_benefits_transactions(
         transactions.append(
             Transaction(
                 date=parse_date(activity.get("status_date")),
-                user_account=f"Rippling - {EMPLOYER_NAME} Commuter Benefits",
+                user_account=account_name,
                 counterparty_account=activity.get("memo"),
                 amount=activity.get("amount"),
             )
@@ -538,9 +542,15 @@ class RipplingData:
     commuter_benefits_transactions: TransactionLog
 
 
-def get_rippling_data() -> RipplingData:
+def get_rippling_data(
+    hsa_account_name: str, commuter_account_name: str
+) -> RipplingData:
     """
     Get Rippling data for HSA and commuter benefits.
+
+    Args:
+        hsa_account_name: The account name to use for HSA transactions
+        commuter_account_name: The account name to use for commuter benefits transactions
     """
     bearer_token = get_bearer_token()
     hsa_account_id, commuter_benefits_account_id = parse_account_ids(
@@ -548,7 +558,9 @@ def get_rippling_data() -> RipplingData:
     )
 
     hsa_activities = fetch_all_activities(bearer_token, hsa_account_id)
-    hsa_transactions = parse_activities_to_hsa_transactions(hsa_activities)
+    hsa_transactions = parse_activities_to_hsa_transactions(
+        hsa_activities, hsa_account_name
+    )
 
     hsa_portfolio_response = fetch_portfolio(bearer_token, hsa_account_id)
     hsa_portfolio = parse_portfolio_response(hsa_portfolio_response)
@@ -557,7 +569,7 @@ def get_rippling_data() -> RipplingData:
         bearer_token, commuter_benefits_account_id
     )
     commuter_benefits_transactions = parse_activities_to_commuter_benefits_transactions(
-        commuter_benefits_activities
+        commuter_benefits_activities, commuter_account_name
     )
 
     return RipplingData(
