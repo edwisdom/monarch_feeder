@@ -260,11 +260,15 @@ async def update_account_holdings(
                     await mm.create_manual_holding_by_ticker(
                         account_id=account_id, ticker=ticker, quantity=target_shares
                     )
+                    print(
+                        f"Updated holding {ticker} from {current_shares:.4f} -> {target_shares:.4f}"
+                    )
             else:
                 # Create new holding
                 await mm.create_manual_holding_by_ticker(
                     account_id=account_id, ticker=ticker, quantity=target_shares
                 )
+                print(f"Created holding {ticker} with {target_shares:.4f} shares")
 
         # Delete holdings not in target portfolio
         for ticker, current_holding_data in current_holdings_map.items():
