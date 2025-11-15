@@ -67,35 +67,59 @@ def login(driver: Driver) -> None:
     print("Clicking login button...")
     login_button = driver.select("button[data-testid='btn-login-with-password']")
     login_button.click()
-    driver.short_random_sleep()
+    driver.sleep(5)
 
     print("Login completed successfully!")
 
 
 def extract_session_context(driver: Driver) -> HumanInterestSession:
     """Extract session context from driver."""
-    local_storage: dict[str, str] = driver.run_js(
-        """
-        const storage = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            storage[key] = localStorage.getItem(key);
-        }
-        return storage;
-    """
-    )
 
-    auth_sid, connect_sid, company_id, context_id = None, None, None, None
-    for key, value in local_storage.items():
-        KEY_PREFIX = "hi_ppt_selected_division_"
-        if key.startswith(KEY_PREFIX):
-            context_id = key.split(KEY_PREFIX)[1]
-            company_id = value
+    # Retry logic for local storage - sometimes it takes a moment to populate
+    KEY_PREFIX = "hi_ppt_selected_division_"
+    max_retries = 3
+    retry_delay = 1
+
+    local_storage = {}
+    company_id, context_id = None, None
+
+    for attempt in range(max_retries):
+        local_storage: dict[str, str] = driver.run_js(
+            """
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            return storage;
+        """
+        )
+        for key, value in local_storage.items():
+            if key.startswith(KEY_PREFIX):
+                context_id = key.split(KEY_PREFIX)[1]
+                company_id = value
+                break
+
+        if context_id and company_id:
+            print(f"Found session context on attempt {attempt + 1}")
             break
-    else:
-        raise ValueError("Context ID and company ID not found in local storage.")
+
+        if attempt < max_retries - 1:
+            print(
+                f"Session context not found, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})"
+            )
+            driver.sleep(retry_delay)
 
     cookies = driver.get_cookies()
+
+    if not context_id or not company_id:
+        print(
+            f"ERROR: Could not find key starting with '{KEY_PREFIX}' in local storage after {max_retries} attempts"
+        )
+        raise ValueError("Context ID and company ID not found in local storage.")
+
+    auth_sid, connect_sid = None, None
+
     for cookie in cookies:
         if cookie.get("name") == "connect.auth.sid":
             auth_sid = cookie.get("value")
