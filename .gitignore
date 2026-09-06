@@ -192,3 +192,7 @@ monarch_categories.json
 
 # Cursor
 .cursorignore
+# Botasaurus browser profiles (contain live session cookies) and run artifacts
+profiles/
+error_logs/
+output/

@@ -26,11 +26,11 @@ def sync(
     Examples:
         inv sync
         inv sync --platforms human_interest
-        inv sync --platforms human_interest,rippling
+        inv sync --platforms human_interest,rippling,hsa_bank
         inv sync --dry-run
     """
     if platforms is None:
-        platform_list = [Platform.HUMAN_INTEREST, Platform.RIPPLING]
+        platform_list = list(INTEGRATIONS)
     else:
         platform_names = [p.strip() for p in platforms.split(",")]
         platform_list = [Platform(name) for name in platform_names]

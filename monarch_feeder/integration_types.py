@@ -16,6 +16,7 @@ class Platform(Enum):
 
     HUMAN_INTEREST = "human_interest"
     RIPPLING = "rippling"
+    HSA_BANK = "hsa_bank"
 
 
 class StreamType(Enum):
