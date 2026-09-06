@@ -19,7 +19,8 @@ async def main(
             "displayName": account.get("displayName"),
             "displayBalance": account.get("displayBalance"),
             "transactionsCount": account.get("transactionsCount"),
-            "institutionName": account.get("institution", {}).get("name"),
+            # Manual accounts have no institution at all
+            "institutionName": (account.get("institution") or {}).get("name"),
         }
         filtered_accounts.append(filtered_account)
 
@@ -28,7 +29,7 @@ async def main(
         filtered_category = {
             "id": category.get("id"),
             "name": category.get("name"),
-            "groupName": category.get("group", {}).get("name"),
+            "groupName": (category.get("group") or {}).get("name"),
         }
         filtered_categories.append(filtered_category)
 
