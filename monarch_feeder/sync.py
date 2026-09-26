@@ -41,7 +41,11 @@ async def _sync_transactions(
             )
         else:
             success = await add_transaction_to_account(
-                mm, txn, stream.account_id, stream.category_id, stream.update_balance
+                mm,
+                txn,
+                stream.account_id,
+                stream.category_for(txn),
+                stream.update_balance,
             )
             status = "✓" if success else "❌"
             print(

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Generic, TypeVar
 
-from monarch_feeder.financial_models import Portfolio, TransactionLog
+from monarch_feeder.financial_models import Portfolio, Transaction, TransactionLog
 
 # Type variable for platform-specific data
 T = TypeVar("T")
@@ -39,7 +39,16 @@ class DataStream(Generic[T]):
     account_name: str
     extractor: Callable[[T], TransactionLog | Portfolio]
     category_id: str | None = None
+    # Category for money leaving the account, e.g. card swipes, when it should
+    # be filed apart from money coming in. Defaults to category_id.
+    spending_category_id: str | None = None
     update_balance: bool = False
+
+    def category_for(self, transaction: Transaction) -> str | None:
+        """Return the Monarch category a transaction should be filed under."""
+        if transaction.amount < 0 and self.spending_category_id:
+            return self.spending_category_id
+        return self.category_id
 
 
 @dataclass
