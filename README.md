@@ -5,7 +5,7 @@
 When I started a new job, none of my new financial accounts natively synced to Monarch Money. So 
 I decided to build the integrations myself.
 
-Monarch Feeder is an automated financial data synchronization tool that extracts transaction and portfolio data from various financial accounts (Human Interest 401k, Rippling HSA/Commuter Benefits, HSA Bank HSA) and syncs it to Monarch Money.
+Monarch Feeder is an automated financial data synchronization tool that extracts transaction and portfolio data from various financial accounts (Human Interest 401k, Rippling HSA/Commuter Benefits, HSA Bank HSA, Navia commuter benefits) and syncs it to Monarch Money.
 
 ## 🎯 What It Does
 
@@ -20,6 +20,7 @@ This tool automates the tedious process of manually importing financial data fro
 - **Human Interest** (401k): Transactions and portfolio holdings
 - **Rippling HSA**: HSA transactions, portfolio holdings, and commuter benefits
 - **HSA Bank** (HSA): Cash transactions, investment holdings, and uninvested cash
+- **Navia** (commuter benefits): Transit orders and debit card spending
 - **Monarch Money**: Target platform for data synchronization
 
 ## 🚀 Quick Start
@@ -75,6 +76,13 @@ then issues a long-lived device token that persists in that profile, so later
 syncs sign in without a challenge. Don't delete `profiles/` unless you want to
 go through the code again.
 
+**Navia works the same way, with a time limit.** It texts or emails a code, so
+Navia syncs also run in their own profile (`profiles/navia`). The first sync
+opens a browser and waits while you pick text or email and enter the code; it
+ticks "Remember this device" for you. Navia honors that for 30 days from when
+you enter the code, and signing in with it doesn't extend it, so expect to
+enter a code about once a month. Each sync prints the date it runs out.
+
 ### 5. Get Monarch Account and Category IDs
 
 Make sure that you've made Monarch manual accounts (e.g. for Human Interest, Rippling, etc.) using their UI. 
@@ -94,6 +102,7 @@ Find the relevant account IDs and category IDs and update your `.env` file.
 ```bash
 # Run all integrations and sync to Monarch
 inv sync
+```
 
 ## 📋 Environment Variables
 
@@ -109,12 +118,17 @@ MONARCH_HUMAN_INTEREST_ACCOUNT_ID="123456789012345678"
 MONARCH_ELEVATE_UMB_ACCOUNT_ID="123456789012345678"
 MONARCH_RIPPLING_COMMUTER_ACCOUNT_ID="123456789012345678"
 MONARCH_HSA_BANK_ACCOUNT_ID="123456789012345678"
+MONARCH_NAVIA_ACCOUNT_ID="123456789012345678"
 
 # Category IDs for transaction categorization (from monarch_categories.json)
 MONARCH_HUMAN_INTEREST_CATEGORY_ID="123456789012345678"
 MONARCH_ELEVATE_UMB_CATEGORY_ID="123456789012345678"
 MONARCH_RIPPLING_COMMUTER_CATEGORY_ID="123456789012345678"
 MONARCH_HSA_BANK_CATEGORY_ID="123456789012345678"
+MONARCH_NAVIA_CATEGORY_ID="123456789012345678"
+
+# Optional: file money going out (e.g. card swipes) under its own category
+MONARCH_NAVIA_SPENDING_CATEGORY_ID="123456789012345678"
 ```
 
 ### Human Interest (401k) Configuration
@@ -133,6 +147,15 @@ RIPPLING_PASSWORD=yourpassword
 ```bash
 HSA_BANK_USERNAME=yourusername
 HSA_BANK_PASSWORD=yourpassword
+```
+
+### Navia Configuration
+```bash
+NAVIA_USERNAME=yourusername
+NAVIA_PASSWORD=yourpassword
+# Open the benefit's statement in the portal and copy its URL. Keep the
+# quotes, since the URL contains "#" and URL-encoded characters.
+NAVIA_TRANSACTIONS_URL="https://app.naviabenefits.com/#/statement?pid=yourplanid&bid=29"
 ```
 
 ### Other
@@ -154,6 +177,7 @@ inv list-integrations
 inv sync --platforms=human_interest
 inv sync --platforms=rippling
 inv sync --platforms=hsa_bank
+inv sync --platforms=navia
 inv sync --platforms=human_interest,rippling
 
 # Preview what would be synced
@@ -180,12 +204,20 @@ Once authenticated, the system makes direct HTTP requests to the platforms' inte
 - **Human Interest**: GraphQL API calls to fetch transaction history and portfolio allocations
 - **Rippling**: REST API calls to retrieve HSA activities, holdings, and commuter benefit transactions
 - **HSA Bank**: REST API calls to `api.bendhsa.com` (HSA Bank's portal is a white-labelled Bend deployment) for cash transactions and DriveWealth investment holdings
+- **Navia**: REST API calls to `webapi.naviabenefits.com` for the benefit's
+  statement. Cloudflare turns away requests made from outside a browser, so
+  these run with `fetch` inside the signed-in page rather than from Python
 
 HSA Bank holds a cash floor (currently $1,000, plus at least $1 more before it
 will invest), so most of the account can sit uninvested. The portfolio stream
 syncs that cash alongside the ETFs, as a `USD-USD` holding whose share count is
 the dollar balance - the same way Monarch itself represents cash inside an
 investment account. Without it the account would read ~$1,000 light.
+
+Navia lists each monthly transit order on the day it's placed, a week or two
+before the money is loaded onto the card (on the 5th). The sync counts
+orders from that day, which matches the balance Navia shows, though for that
+stretch it runs ahead of what's spendable on the card.
 - All data is returned as structured JSON from the platforms' production APIs
 
 ### 3. Data Processing
@@ -235,6 +267,15 @@ Using the [`monarchmoney`](https://github.com/hammem/monarchmoney) Python librar
 4. **HSA Bank asks for a code every run**: something cleared the browser
    profile. Delete `profiles/hsa_bank`, run a sync, and enter the emailed code
    once more to re-establish the device token.
+
+5. **Navia asks for a code**: expected about once a month, since Navia only
+   remembers a device for 30 days. Enter the code in the browser window the
+   sync opens. If it asks sooner, the device token is gone (for instance
+   `profiles/navia` was deleted), and entering the code sets up a new one.
+
+6. **Navia statement fails to load**: if Navia moves the benefit to a new
+   plan, its statement URL changes. Open the benefit's statement in the portal
+   and update `NAVIA_TRANSACTIONS_URL`.
 
 ### Logs and Debugging
 
