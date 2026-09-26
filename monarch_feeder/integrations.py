@@ -2,6 +2,7 @@
 
 import os
 
+from monarch_feeder.financial_models import TransactionLog
 from monarch_feeder.integration_types import (
     DataStream,
     Integration,
@@ -13,7 +14,7 @@ from monarch_feeder.platforms.human_interest import (
     get_human_interest_data,
 )
 from monarch_feeder.platforms.hsa_bank import HSABankData, get_hsa_bank_data
-from monarch_feeder.platforms.navia import NaviaData, get_navia_data
+from monarch_feeder.platforms.navia import get_navia_transactions
 from monarch_feeder.platforms.rippling import RipplingData, get_rippling_data
 
 EMPLOYER_NAME = os.getenv("EMPLOYER_NAME")
@@ -99,9 +100,9 @@ INTEGRATIONS: dict[Platform, Integration] = {
             ),
         ],
     ),
-    Platform.NAVIA: Integration[NaviaData](
+    Platform.NAVIA: Integration[TransactionLog](
         name="Navia",
-        data_fetcher=lambda: get_navia_data(
+        data_fetcher=lambda: get_navia_transactions(
             account_name=f"Navia - {EMPLOYER_NAME} Commuter Benefits"
         ),
         data_streams=[
@@ -110,7 +111,7 @@ INTEGRATIONS: dict[Platform, Integration] = {
                 stream_type=StreamType.TRANSACTIONS,
                 account_id=os.getenv("MONARCH_NAVIA_ACCOUNT_ID"),
                 account_name=f"Navia - {EMPLOYER_NAME} Commuter Benefits",
-                extractor=lambda data: data.transactions,
+                extractor=lambda transactions: transactions,
                 category_id=os.getenv("MONARCH_NAVIA_CATEGORY_ID"),
                 spending_category_id=os.getenv("MONARCH_NAVIA_SPENDING_CATEGORY_ID"),
                 update_balance=True,

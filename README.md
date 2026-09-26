@@ -76,12 +76,9 @@ then issues a long-lived device token that persists in that profile, so later
 syncs sign in without a challenge. Don't delete `profiles/` unless you want to
 go through the code again.
 
-**Navia works the same way, with a time limit.** It texts or emails a code, so
-Navia syncs also run in their own profile (`profiles/navia`). The first sync
-opens a browser and waits while you pick text or email and enter the code; it
-ticks "Remember this device" for you. Navia honors that for 30 days from when
-you enter the code, and signing in with it doesn't extend it, so expect to
-enter a code about once a month. Each sync prints the date it runs out.
+**Navia works the same way** (in `profiles/navia`), except it only remembers
+the device for 30 days from when you enter the code, and later logins don't
+extend that. Expect a code about once a month; each sync prints the deadline.
 
 ### 5. Get Monarch Account and Category IDs
 
@@ -153,8 +150,7 @@ HSA_BANK_PASSWORD=yourpassword
 ```bash
 NAVIA_USERNAME=yourusername
 NAVIA_PASSWORD=yourpassword
-# Open the benefit's statement in the portal and copy its URL. Keep the
-# quotes, since the URL contains "#" and URL-encoded characters.
+# The benefit's statement page in the portal, quoted since it contains "#"
 NAVIA_TRANSACTIONS_URL="https://app.naviabenefits.com/#/statement?pid=yourplanid&bid=29"
 ```
 
@@ -214,10 +210,9 @@ syncs that cash alongside the ETFs, as a `USD-USD` holding whose share count is
 the dollar balance - the same way Monarch itself represents cash inside an
 investment account. Without it the account would read ~$1,000 light.
 
-Navia lists each monthly transit order on the day it's placed, a week or two
-before the money is loaded onto the card (on the 5th). The sync counts
-orders from that day, which matches the balance Navia shows, though for that
-stretch it runs ahead of what's spendable on the card.
+Navia counts each monthly transit order from the day it's placed, a week or
+two before the card is loaded, and so does the sync. So the balance matches
+Navia's but runs ahead of what's spendable on the card until the load.
 - All data is returned as structured JSON from the platforms' production APIs
 
 ### 3. Data Processing
@@ -267,15 +262,6 @@ Using the [`monarchmoney`](https://github.com/hammem/monarchmoney) Python librar
 4. **HSA Bank asks for a code every run**: something cleared the browser
    profile. Delete `profiles/hsa_bank`, run a sync, and enter the emailed code
    once more to re-establish the device token.
-
-5. **Navia asks for a code**: expected about once a month, since Navia only
-   remembers a device for 30 days. Enter the code in the browser window the
-   sync opens. If it asks sooner, the device token is gone (for instance
-   `profiles/navia` was deleted), and entering the code sets up a new one.
-
-6. **Navia statement fails to load**: if Navia moves the benefit to a new
-   plan, its statement URL changes. Open the benefit's statement in the portal
-   and update `NAVIA_TRANSACTIONS_URL`.
 
 ### Logs and Debugging
 

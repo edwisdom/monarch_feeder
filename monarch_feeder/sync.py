@@ -40,12 +40,9 @@ async def _sync_transactions(
                 f"    🔍 Would add: {txn.date} | {txn.counterparty_account} | ${txn.amount:.2f}"
             )
         else:
+            category_id = stream.category_for(txn)
             success = await add_transaction_to_account(
-                mm,
-                txn,
-                stream.account_id,
-                stream.category_for(txn),
-                stream.update_balance,
+                mm, txn, stream.account_id, category_id, stream.update_balance
             )
             status = "✓" if success else "❌"
             print(
