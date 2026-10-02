@@ -18,6 +18,7 @@ class Platform(Enum):
     RIPPLING = "rippling"
     HSA_BANK = "hsa_bank"
     NAVIA = "navia"
+    EMPOWER_RETIREMENT = "empower_retirement"
 
 
 class StreamType(Enum):

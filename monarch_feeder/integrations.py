@@ -9,6 +9,9 @@ from monarch_feeder.integration_types import (
     Platform,
     StreamType,
 )
+from monarch_feeder.platforms.empower_retirement import (
+    get_empower_retirement_contributions,
+)
 from monarch_feeder.platforms.human_interest import (
     HumanInterestData,
     get_human_interest_data,
@@ -115,6 +118,24 @@ INTEGRATIONS: dict[Platform, Integration] = {
                 category_id=os.getenv("MONARCH_NAVIA_CATEGORY_ID"),
                 spending_category_id=os.getenv("MONARCH_NAVIA_SPENDING_CATEGORY_ID"),
                 update_balance=True,
+            ),
+        ],
+    ),
+    # Plaid syncs this account's balance, holdings and trades, so the stream
+    # only adds contributions, and leaves the balance alone.
+    Platform.EMPOWER_RETIREMENT: Integration[TransactionLog](
+        name="Empower Retirement",
+        data_fetcher=lambda: get_empower_retirement_contributions(
+            account_name=f"Empower Retirement - {EMPLOYER_NAME} 401k"
+        ),
+        data_streams=[
+            DataStream(
+                name="Empower Retirement Contributions",
+                stream_type=StreamType.TRANSACTIONS,
+                account_id=os.getenv("MONARCH_EMPOWER_RETIREMENT_ACCOUNT_ID"),
+                account_name=f"Empower Retirement - {EMPLOYER_NAME} 401k",
+                extractor=lambda transactions: transactions,
+                category_id=os.getenv("MONARCH_EMPOWER_RETIREMENT_CATEGORY_ID"),
             ),
         ],
     ),
