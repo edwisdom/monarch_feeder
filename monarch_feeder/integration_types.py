@@ -64,3 +64,5 @@ class Integration(Generic[T]):
     name: str
     data_fetcher: Callable[[], T]
     data_streams: list[DataStream[T]]
+    # Whether a sync that doesn't name its platforms runs this one
+    sync_by_default: bool = True

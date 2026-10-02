@@ -46,6 +46,7 @@ INTEGRATIONS: dict[Platform, Integration] = {
                 extractor=lambda data: data.portfolio,
             ),
         ],
+        sync_by_default=False,
     ),
     Platform.RIPPLING: Integration[RipplingData](
         name="Rippling",
@@ -79,6 +80,7 @@ INTEGRATIONS: dict[Platform, Integration] = {
                 update_balance=True,
             ),
         ],
+        sync_by_default=False,
     ),
     Platform.HSA_BANK: Integration[HSABankData](
         name="HSA Bank",

@@ -20,7 +20,8 @@ def sync(
     Sync all platforms to Monarch Money.
 
     Args:
-        platforms: Comma-separated list of platforms to sync (default: all platforms)
+        platforms: Comma-separated list of platforms to sync (default: every
+            platform that syncs by default, see `inv list-integrations`)
         dry_run: If True, only print what would be done without making changes
 
     Examples:
@@ -30,7 +31,11 @@ def sync(
         inv sync --dry-run
     """
     if platforms is None:
-        platform_list = list(INTEGRATIONS)
+        platform_list = [
+            platform
+            for platform, integration in INTEGRATIONS.items()
+            if integration.sync_by_default
+        ]
     else:
         platform_names = [p.strip() for p in platforms.split(",")]
         platform_list = [Platform(name) for name in platform_names]
@@ -47,3 +52,10 @@ def list_integrations(
     """
     platforms = [platform.value for platform in INTEGRATIONS]
     print(f"Available platforms: {', '.join(platforms)}")
+    named_only = [
+        platform.value
+        for platform, integration in INTEGRATIONS.items()
+        if not integration.sync_by_default
+    ]
+    if named_only:
+        print(f"Only synced when named with --platforms: {', '.join(named_only)}")

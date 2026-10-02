@@ -17,8 +17,10 @@ This tool automates the tedious process of manually importing financial data fro
 
 ### Supported Platforms
 
-- **Human Interest** (401k): Transactions and portfolio holdings
+- **Human Interest** (401k): Transactions and portfolio holdings (only synced
+  when named)
 - **Rippling HSA**: HSA transactions, portfolio holdings, and commuter benefits
+  (only synced when named)
 - **HSA Bank** (HSA): Cash transactions, investment holdings, and uninvested cash
 - **Navia** (commuter benefits): Transit orders and debit card spending
 - **Empower Retirement** (401k): Paycheck contributions, into the account Plaid
@@ -104,7 +106,7 @@ Find the relevant account IDs and category IDs and update your `.env` file.
 ### 6. Run the Complete Workflow
 
 ```bash
-# Run all integrations and sync to Monarch
+# Run the default integrations (all but Human Interest and Rippling) and sync to Monarch
 inv sync
 ```
 
@@ -187,7 +189,8 @@ The project uses [Invoke](https://pyinvoke.org/) for task management.
 # List available integrations
 inv list-integrations
 
-# Run specific platform integrations
+# Run specific platform integrations. Human Interest and Rippling only run
+# this way, since plain `inv sync` skips them
 inv sync --platforms=human_interest
 inv sync --platforms=rippling
 inv sync --platforms=hsa_bank
