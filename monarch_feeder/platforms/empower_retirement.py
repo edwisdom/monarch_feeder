@@ -34,6 +34,8 @@ EMPOWER_RETIREMENT_LOGIN_URL = os.getenv(
 EMPOWER_RETIREMENT_TRANSACTIONS_URL = os.getenv("EMPOWER_RETIREMENT_TRANSACTIONS_URL")
 
 API_URL = "https://participant.empower-retirement.com/participant-web-services/rest"
+# How the API writes dates, e.g. "02-Oct-2026"
+DATE_FORMAT = "%d-%b-%Y"
 
 # Empower only sometimes texts a code on sign-in. Ticking "Remember device" on
 # the code screen has it trust the browser, and a dedicated profile carries
@@ -201,7 +203,7 @@ def parse_contributions(
 
         transactions.append(
             Transaction(
-                date=datetime.strptime(row["effdate"], "%d-%b-%Y").date().isoformat(),
+                date=datetime.strptime(row["effdate"], DATE_FORMAT).date().isoformat(),
                 user_account=account_name,
                 counterparty_account=row["transactionDesc"],
                 amount=row["amount"],
@@ -214,13 +216,13 @@ def parse_contributions(
 def get_empower_retirement_contributions(
     account_name: str, days: int = HISTORY_DAYS
 ) -> TransactionLog:
-    """Get the last `days` of paycheck contributions to the plan
+    """Get the last `days` of paycheck contributions to the plan that
     EMPOWER_RETIREMENT_TRANSACTIONS_URL points at."""
     # Parse first so a bad URL fails before we open a browser
     params = parse_account_url(EMPOWER_RETIREMENT_TRANSACTIONS_URL)
     today = date.today()
-    params["startDate"] = (today - timedelta(days=days)).strftime("%d-%b-%Y")
-    params["endDate"] = today.strftime("%d-%b-%Y")
+    params["startDate"] = (today - timedelta(days=days)).strftime(DATE_FORMAT)
+    params["endDate"] = today.strftime(DATE_FORMAT)
 
     result = get_history(params)
     if not result:
