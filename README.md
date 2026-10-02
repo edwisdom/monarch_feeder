@@ -5,7 +5,7 @@
 When I started a new job, none of my new financial accounts natively synced to Monarch Money. So 
 I decided to build the integrations myself.
 
-Monarch Feeder is an automated financial data synchronization tool that extracts transaction and portfolio data from various financial accounts (Human Interest 401k, Rippling HSA/Commuter Benefits, HSA Bank HSA, Navia commuter benefits) and syncs it to Monarch Money.
+Monarch Feeder is an automated financial data synchronization tool that extracts transaction and portfolio data from various financial accounts (Human Interest 401k, Rippling HSA/Commuter Benefits, HSA Bank HSA, Navia commuter benefits, Empower Retirement 401k contributions) and syncs it to Monarch Money.
 
 ## 🎯 What It Does
 
@@ -21,6 +21,8 @@ This tool automates the tedious process of manually importing financial data fro
 - **Rippling HSA**: HSA transactions, portfolio holdings, and commuter benefits
 - **HSA Bank** (HSA): Cash transactions, investment holdings, and uninvested cash
 - **Navia** (commuter benefits): Transit orders and debit card spending
+- **Empower Retirement** (401k): Paycheck contributions, into the account Plaid
+  already syncs
 - **Monarch Money**: Target platform for data synchronization
 
 ## 🚀 Quick Start
@@ -80,6 +82,11 @@ go through the code again.
 the device for 30 days from when you enter the code, and later logins don't
 extend that. Expect a code about once a month; each sync prints the deadline.
 
+**Empower Retirement works the same way too** (in `profiles/empower_retirement`),
+but it only asks for a texted code on some sign-ins. When it does, the sync
+pauses for you to pick text and enter the code in the browser window, and ticks
+"Remember device" for you.
+
 ### 5. Get Monarch Account and Category IDs
 
 Make sure that you've made Monarch manual accounts (e.g. for Human Interest, Rippling, etc.) using their UI. 
@@ -116,6 +123,8 @@ MONARCH_ELEVATE_UMB_ACCOUNT_ID="123456789012345678"
 MONARCH_RIPPLING_COMMUTER_ACCOUNT_ID="123456789012345678"
 MONARCH_HSA_BANK_ACCOUNT_ID="123456789012345678"
 MONARCH_NAVIA_ACCOUNT_ID="123456789012345678"
+# The account Plaid syncs, rather than a manual one
+MONARCH_EMPOWER_RETIREMENT_ACCOUNT_ID="123456789012345678"
 
 # Category IDs for transaction categorization (from monarch_categories.json)
 MONARCH_HUMAN_INTEREST_CATEGORY_ID="123456789012345678"
@@ -123,6 +132,7 @@ MONARCH_ELEVATE_UMB_CATEGORY_ID="123456789012345678"
 MONARCH_RIPPLING_COMMUTER_CATEGORY_ID="123456789012345678"
 MONARCH_HSA_BANK_CATEGORY_ID="123456789012345678"
 MONARCH_NAVIA_CATEGORY_ID="123456789012345678"
+MONARCH_EMPOWER_RETIREMENT_CATEGORY_ID="123456789012345678"
 
 # Optional: file money going out (e.g. card swipes) under its own category
 MONARCH_NAVIA_SPENDING_CATEGORY_ID="123456789012345678"
@@ -154,6 +164,14 @@ NAVIA_PASSWORD=yourpassword
 NAVIA_TRANSACTIONS_URL="https://app.naviabenefits.com/#/statement?pid=yourplanid&bid=29"
 ```
 
+### Empower Retirement Configuration
+```bash
+EMPOWER_RETIREMENT_USERNAME=yourusername
+EMPOWER_RETIREMENT_PASSWORD=yourpassword
+# The account's transaction history page in the portal, quoted since it contains "#"
+EMPOWER_RETIREMENT_TRANSACTIONS_URL="https://participant.empower-retirement.com/participant/accounts/#/account/yourid/yourplan/transaction-history"
+```
+
 ### Other
 ```bash
 EMPLOYER_NAME=your_employer_name # For account naming
@@ -174,6 +192,7 @@ inv sync --platforms=human_interest
 inv sync --platforms=rippling
 inv sync --platforms=hsa_bank
 inv sync --platforms=navia
+inv sync --platforms=empower_retirement
 inv sync --platforms=human_interest,rippling
 
 # Preview what would be synced
@@ -203,6 +222,9 @@ Once authenticated, the system makes direct HTTP requests to the platforms' inte
 - **Navia**: REST API calls to `webapi.naviabenefits.com` for the benefit's
   statement. Cloudflare turns away requests made from outside a browser, so
   these run with `fetch` inside the signed-in page rather than from Python
+- **Empower Retirement**: REST API calls to the participant portal's
+  `participant-web-services` for the account's transaction history, from
+  inside the signed-in page as with Navia
 
 HSA Bank holds a cash floor (currently $1,000, plus at least $1 more before it
 will invest), so most of the account can sit uninvested. The portfolio stream
@@ -213,6 +235,14 @@ investment account. Without it the account would read ~$1,000 light.
 Navia counts each monthly transit order from the day it's placed, a week or
 two before the card is loaded, and so does the sync. So the balance matches
 Navia's but runs ahead of what's spendable on the card until the load.
+
+Plaid syncs the Empower 401(k)'s balance, holdings, trades, fees and dividends,
+but it records each paycheck's contribution as per-fund "Buy" rows, which
+Monarch treats as transfers, so the contributions never count as income. The
+Empower integration adds them into that same account the way Empower lists
+them: an "Employee Contribution" and an "Employer Contribution" per paycheck.
+It skips contributions without a payroll date, such as a rollover or a balance
+moved over from a previous plan, since they aren't income.
 - All data is returned as structured JSON from the platforms' production APIs
 
 ### 3. Data Processing
