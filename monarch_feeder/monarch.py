@@ -350,8 +350,14 @@ async def get_transactions_for_account(
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
 
+    # The library stops at 100 rows by default, but a Plaid-linked account
+    # holds many rows the sync didn't create (Empower's has ~75 in 60 days),
+    # and any of ours cut off from the read could look new and be added again.
     response = await mm.get_transactions(
-        account_ids=[account_id], start_date=start_date_str, end_date=end_date_str
+        limit=1000,
+        account_ids=[account_id],
+        start_date=start_date_str,
+        end_date=end_date_str,
     )
 
     # Convert raw transactions to standardized Transaction models
