@@ -293,7 +293,7 @@ def parse_date(datetime_str: str) -> str:
 
 def fetch_transactions(
     access_token: str,
-    page: int = 0,
+    page: int = 1,
     page_size: int = 25,
     transaction_filter: str = "All",
     include_pending: bool = False,
@@ -303,7 +303,7 @@ def fetch_transactions(
 
     Args:
         access_token: The Okta access token for authorization (JWT)
-        page: Page number to fetch (starts at 0)
+        page: Page number to fetch, starting at 1 (page 0 returns page 1 again)
         page_size: Number of items per page (default: 25)
         transaction_filter: Which transactions to include (default: "All")
         include_pending: Whether to include transactions that haven't posted
@@ -349,7 +349,7 @@ def fetch_all_transactions(
         requests.HTTPError: If any request fails
     """
     all_records = []
-    page = 0
+    page = 1
     total_fetched = 0
 
     while total_fetched < max_transactions:
@@ -366,9 +366,7 @@ def fetch_all_transactions(
         all_records.extend(records)
         total_fetched += len(records)
 
-        # The API clamps out-of-range pages to the last one, so trust its count
-        # rather than waiting for an empty page.
-        if page + 1 >= response.get("numberOfPages", 1):
+        if page >= response.get("numberOfPages", 1):
             break
 
         page += 1
