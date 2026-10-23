@@ -356,11 +356,15 @@ async def get_transactions_for_account(
 
     # Convert raw transactions to standardized Transaction models
     raw_transactions = response["allTransactions"]["results"]
-    standardized_transactions = [
+    # Distinct rows can standardize to the same Transaction, e.g. two $0.01
+    # dividends that Plaid reports per money source and Monarch files under one
+    # merchant. The sync only checks which transactions are already here, so
+    # one copy of each is enough.
+    standardized_transactions = dict.fromkeys(
         standardize_monarch_transaction(tx) for tx in raw_transactions
-    ]
+    )
 
-    return TransactionLog(transactions=standardized_transactions)
+    return TransactionLog(transactions=list(standardized_transactions))
 
 
 async def get_portfolio_for_account(mm: MonarchMoney, account_id: str) -> Portfolio:
